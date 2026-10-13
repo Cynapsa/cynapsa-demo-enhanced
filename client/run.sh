@@ -12,7 +12,7 @@ case "$(docker version --format '{{.Server.Arch}}')" in
   *) echo "Unsupported Docker architecture." >&2; exit 69 ;;
 esac
 
-IMAGE=${CYNAPSA_DEMO_CLIENT_IMAGE:-cynapsa-demo-$ROLE:main-$ARCH}
+IMAGE=${CYNAPSA_DEMO_CLIENT_IMAGE:-cynapsa-demo-enhanced-$ROLE:main-$ARCH}
 ENV_FILE=${CYNAPSA_DEMO_CLIENT_ENV_FILE:-$ROOT/.env}
 ACTIVE_VOLUME_FILE=$ROOT/.private/active-volume
 force_enroll=false
@@ -40,7 +40,7 @@ elif [[ -f $ACTIVE_VOLUME_FILE ]]; then
   IFS= read -r VOLUME < "$ACTIVE_VOLUME_FILE"
   [[ $VOLUME =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]] || { echo "invalid active volume pointer" >&2; exit 78; }
 else
-  VOLUME=cynapsa-demo-$ROLE-state
+  VOLUME=cynapsa-demo-enhanced-$ROLE-state
 fi
 
 if [[ $build_requested == true ]] || ! docker image inspect "$IMAGE" >/dev/null 2>&1; then

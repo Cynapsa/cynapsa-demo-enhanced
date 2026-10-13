@@ -1,0 +1,71 @@
+{
+  "family": "cynapsa-demo-enhanced-orchestrator",
+  "taskRoleArn": "arn:aws:iam::821211778460:role/CynapsaDemoEnhancedOrchestratorTaskRole",
+  "executionRoleArn": "arn:aws:iam::821211778460:role/CynapsaDemoEnhancedOrchestratorExecutionRole",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "volumes": [
+    {
+      "name": "cynapsa-state",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-02bb63c19f7412232",
+        "rootDirectory": "/",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "fsap-03dfffdf38ca96c41",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "demo-enhanced-orchestrator",
+      "image": "821211778460.dkr.ecr.us-east-1.amazonaws.com/cynapsa-demo-enhanced-orchestrator@sha256:170fa0dd3b166d097e44f67634c6f9aa82edc99cccd5afe26932401a225b545d",
+      "cpu": 0,
+      "essential": true,
+      "user": "65532:65532",
+      "environment": [
+        {"name": "DEMO_MESH_ID", "value": "demo_enhanced_cynapsa_demo"},
+        {"name": "DEMO_MAPS_AGENT_ID", "value": "cynapsa-demo.agent-e60e59d4-3578-4614-8f4b-24f790944f58@connect.cynapsa.com"},
+        {"name": "DEMO_FILES_AGENT_ID", "value": "cynapsa-demo.agent-0a7205ad-0ab1-4536-9aea-f4f2d20241a1@connect.cynapsa.com"},
+        {"name": "DEMO_CLIENT_AGENT_ID", "value": "cynapsa-demo.agent-a1a03925-809f-4ab4-8ede-aebe15022ad6@connect.cynapsa.com"},
+        {"name": "DEMO_MEMORY_DIRECTORY", "value": "/var/lib/cynapsa-memory"},
+        {"name": "LITELLM_BASE_URL", "value": "https://litellm.eladrave.com"},
+        {"name": "LITELLM_MODEL", "value": "chatgpt/gpt-5.6-terra-high"}
+      ],
+      "secrets": [
+        {
+          "name": "CYNAPSA_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:821211778460:secret:cynapsa-demo-enhanced-orchestrator-runtime-XZ2iaP:enrollment_token::"
+        },
+        {
+          "name": "LITELLM_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:821211778460:secret:cynapsa-demo-enhanced-orchestrator-runtime-XZ2iaP:litellm_api_key::"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "cynapsa-state",
+          "containerPath": "/var/lib/cynapsa",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cynapsa-demo-enhanced-orchestrator",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "orchestrator"
+        }
+      },
+      "stopTimeout": 30
+    }
+  ]
+}

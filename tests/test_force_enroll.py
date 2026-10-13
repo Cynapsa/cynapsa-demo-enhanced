@@ -175,7 +175,7 @@ class ForceEnrollTests(unittest.TestCase):
                 token_file = scratch_path / "private" / "enrollment_token"
                 self.assertEqual(
                     cli_log.read_text(encoding="utf-8").strip(),
-                    f"run --mesh-id test-mesh --profile-id demo-{role} "
+                    f"run --mesh-id test-mesh --profile-id demo-enhanced-{role} "
                     f"--token-file {token_file} --force-enroll -- python /app/bootstrap.py",
                 )
                 self.assertFalse(token_file.exists())
@@ -218,7 +218,7 @@ class ForceEnrollTests(unittest.TestCase):
             enrolled = subprocess.run(command, env=env, capture_output=True, text=True)
             self.assertEqual(enrolled.returncode, 0, enrolled.stderr)
             self.assertIn(
-                f"run --mesh-id test-mesh --profile-id demo-files --rpc-timeout-ms 110000 "
+                f"run --mesh-id test-mesh --profile-id demo-enhanced-files --rpc-timeout-ms 110000 "
                 f"--token-file {private / 'enrollment_token'} -- uvicorn app:app "
                 "--host 127.0.0.1 --port 8000 --no-access-log",
                 cli_log.read_text(),

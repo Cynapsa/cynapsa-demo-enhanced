@@ -24,6 +24,7 @@ from rpc_logging import configure_logging, log_handler
 LOG = logging.getLogger(__name__)
 MODEL = os.environ.get("LITELLM_MODEL", "chatgpt/gpt-5.6-terra-high")
 BASE_URL = os.environ.get("LITELLM_BASE_URL", "https://litellm.eladrave.com")
+MAX_MODEL_ROUNDS = 10
 TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
@@ -86,7 +87,8 @@ class MapsState(TypedDict):
 def answer_question(question: str, client: ModelClient, places: GooglePlaces) -> dict[str, Any]:
     def reason(state: MapsState) -> dict[str, Any]:
         round_index = state["round_index"]
-        if round_index >= 3:
+        if round_index >= MAX_MODEL_ROUNDS:
+            LOG.warning("Maps model exhausted %s tool/reasoning rounds", MAX_MODEL_ROUNDS)
             raise cynapsa.RPCException(
                 502, code="maps_no_answer", detail="The maps agent could not finish an answer"
             )
@@ -197,7 +199,7 @@ def answer_question(question: str, client: ModelClient, places: GooglePlaces) ->
             {"role": "user", "content": question},
         ],
         "round_index": 0, "known_ids": set(), "sources": [], "result": {}, "output": {},
-    }, {"recursion_limit": 12})
+    }, {"recursion_limit": 2 * MAX_MODEL_ROUNDS + 4})
     return result["output"]
 
 

@@ -1,5 +1,10 @@
 # Demo client
 
+In the enhanced deployment, this app runs inside the local desktop image via
+`desktop/client.sh`. See the repository-root `README.md` for current startup,
+mesh, and peer IDs. Independent-directory instructions below remain available
+for a standalone Client container.
+
 `app.py` is an ordinary Requests program. It sends JSON to
 `DEMO_ORCHESTRATOR_ORIGIN/ask` and imports no Cynapsa package. The container
 entrypoint runs it through `cynapsa run`, which maps that HTTP origin to the

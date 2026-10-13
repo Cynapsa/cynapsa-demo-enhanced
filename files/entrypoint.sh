@@ -37,7 +37,7 @@ fi
 unset DEMO_STATE_KEY_B64 DEMO_STATE_PROFILE_B64 DEMO_STATE_PROFILE_FILENAME
 
 set -- cynapsa run --mesh-id "${DEMO_MESH_ID:?DEMO_MESH_ID is required}" \
-  --profile-id demo-files --rpc-timeout-ms 110000
+  --profile-id demo-enhanced-files --rpc-timeout-ms 110000
 if [ "${DEMO_FORCE_ENROLL:-}" = 1 ] || [ "$profile_present" = false ]; then
   if [ -n "${CYNAPSA_TOKEN:-}" ]; then
     printf '%s' "$CYNAPSA_TOKEN" > "$private_directory/enrollment_token"
@@ -55,4 +55,7 @@ if [ "${DEMO_FORCE_ENROLL:-}" = 1 ] || [ "$profile_present" = false ]; then
   fi
 fi
 unset CYNAPSA_TOKEN
+if [ -n "${DEMO_APP_DIRECTORY:-}" ]; then
+  cd "$DEMO_APP_DIRECTORY"
+fi
 exec "$@" -- uvicorn app:app --host 127.0.0.1 --port 8000 --no-access-log

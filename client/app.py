@@ -13,7 +13,7 @@ import requests
 
 
 LOG = logging.getLogger("demo.http")
-DEFAULT_ORIGIN = "http://demo-orchestrator.local"
+DEFAULT_ORIGIN = "http://orchestrator-enhanced.local"
 
 
 def main() -> None:

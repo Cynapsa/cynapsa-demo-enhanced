@@ -72,7 +72,7 @@ def connection_options(*, enroll: bool, force_enroll: bool = False) -> dict[str,
     mesh_id = _required_environment("DEMO_MESH_ID")
     options: dict[str, str | int | bool] = {
         "mesh_id": mesh_id,
-        "profile_id": "demo-orchestrator",
+        "profile_id": "demo-enhanced-orchestrator",
         "rpc_timeout_ms": 110_000,
     }
     if enroll:

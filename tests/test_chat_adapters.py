@@ -226,7 +226,7 @@ def test_client_reuses_conversation_then_new_resets_it(monkeypatch, capsys, capl
     response = requests.Response()
     response.status_code = 200
     response._content = b'{"answer":"ok","maps":null}'
-    response.url = "http://demo-orchestrator.local/ask"
+    response.url = "http://orchestrator-enhanced.local/ask"
     post = Mock(return_value=response)
     monkeypatch.setattr(requests, "post", post)
     monkeypatch.setenv("DEMO_CONVERSATION_ID", "resumed-chat")
@@ -241,7 +241,7 @@ def test_client_reuses_conversation_then_new_resets_it(monkeypatch, capsys, capl
     bodies = [call.kwargs["json"] for call in post.call_args_list]
     assert bodies[0]["conversation_id"] == bodies[1]["conversation_id"] == "resumed-chat"
     assert bodies[2]["conversation_id"] != "resumed-chat"
-    assert all(call.args == ("http://demo-orchestrator.local/ask",)
+    assert all(call.args == ("http://orchestrator-enhanced.local/ask",)
                and call.kwargs["timeout"] == 140 for call in post.call_args_list)
     output = capsys.readouterr().out
     assert ("Conversation: resumed-chat" in output) is not quiet
@@ -254,7 +254,7 @@ def test_quiet_client_keeps_prompts_answers_and_failures(monkeypatch, capsys, ca
     denied = requests.Response()
     denied.status_code = 404
     denied._content = b'{"detail":"Missing endpoint"}'
-    denied.url = "http://demo-orchestrator.local/ask"
+    denied.url = "http://orchestrator-enhanced.local/ask"
     answered = requests.Response()
     answered.status_code = 200
     answered._content = b'{"answer":"Chat answer","maps":null}'

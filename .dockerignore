@@ -1,5 +1,7 @@
 **/.private
 **/.state
+**/.env
+**/agents-info.txt
 .git
 .gcloud-venv
 .venv

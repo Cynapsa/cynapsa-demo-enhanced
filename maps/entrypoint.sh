@@ -59,7 +59,7 @@ if [ "${DEMO_FORCE_ENROLL:-}" = 1 ] || [ "$profile_present" = false ]; then
   chmod 600 "$private_directory/enrollment_token"
   unset CYNAPSA_TOKEN
   if [ "${DEMO_FORCE_ENROLL:-}" = 1 ]; then
-    cynapsa run --mesh-id "$DEMO_MESH_ID" --profile-id demo-maps \
+    cynapsa run --mesh-id "$DEMO_MESH_ID" --profile-id demo-enhanced-maps \
       --token-file "$private_directory/enrollment_token" --force-enroll \
       -- python /app/bootstrap.py
     rm -f "$private_directory/enrollment_token"

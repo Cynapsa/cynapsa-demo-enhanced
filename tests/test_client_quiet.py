@@ -55,8 +55,8 @@ def test_entrypoint_forwards_quiet_in_all_login_paths(tmp_path, enrollment, orig
     assert result.stdout == ""
     commands = log.read_text().splitlines()
     assert len(commands) == 1
-    assert commands[0].startswith("run --mesh-id test-mesh --profile-id demo-client ")
-    assert f"--map {origin or 'http://demo-orchestrator.local'} orchestrator@example.test rpc" in commands[0]
+    assert commands[0].startswith("run --mesh-id test-mesh --profile-id demo-enhanced-client ")
+    assert f"--map {origin or 'http://orchestrator-enhanced.local'} orchestrator@example.test rpc" in commands[0]
     assert "--rpc-timeout-ms 140000" in commands[0]
     assert commands[0].endswith("-- python /app/app.py --quiet")
     assert ("--token-file" in commands[0]) is (enrollment != "cached")

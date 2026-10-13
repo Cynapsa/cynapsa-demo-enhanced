@@ -1,5 +1,10 @@
 # Demo orchestrator
 
+For the separate enhanced deployment, use the mesh and peer IDs in
+`.env.example` and the current topology in the repository-root `README.md`.
+Historical cloud resource names later in this file describe the original demo,
+not this enhanced ECS service.
+
 Console alerts observe the SDK event stream independently of request handling
 and input. Example: `ALERT mesh connectivity: available -> degraded`, followed
 by recovery to `available` or failure to `unavailable`. SDK lifecycle changes

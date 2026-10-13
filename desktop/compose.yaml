@@ -1,0 +1,64 @@
+name: cynapsa-demo-enhanced-desktop
+
+services:
+  desktop:
+    image: cynapsa-demo-enhanced-desktop:local
+    platform: linux/arm64
+    hostname: cynapsa-demo-enhanced-desktop
+    environment:
+      HOME: /home/codex
+      USER: codex
+      LOGNAME: codex
+      SHELL: /bin/bash
+      CODEX_HOME: /home/codex/.codex
+      CODEX_DESKTOP_CRD_ENABLED: "0"
+      REMOTE_BROWSER_TAILSCALE_SERVE: "0"
+      REMOTE_BROWSER_GUEST_ACCESS_ENABLED: "0"
+      REMOTE_BROWSER_PUBLIC_MCP_FUNNEL: "0"
+      DEMO_MESH_ID: ${DEMO_MESH_ID:?Set DEMO_MESH_ID}
+      DEMO_ORCHESTRATOR_AGENT_ID: ${DEMO_ORCHESTRATOR_AGENT_ID:?Set DEMO_ORCHESTRATOR_AGENT_ID}
+      DEMO_FILES_AGENT_ID: ${DEMO_FILES_AGENT_ID:?Set DEMO_FILES_AGENT_ID}
+      DEMO_ORCHESTRATOR_ORIGIN: http://orchestrator-enhanced.local
+      LITELLM_BASE_URL: https://litellm.eladrave.com
+      LITELLM_MODEL: chatgpt/gpt-5.6-terra-high
+      TS_STATE_DIR: /var/lib/tailscale
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, KILL, SETGID, SETUID, AUDIT_WRITE]
+    security_opt: [apparmor=unconfined, seccomp=unconfined]
+    volumes:
+      - enhanced-home:/home/codex
+      - enhanced-tailscale:/var/lib/tailscale
+      - enhanced-machine:/var/lib/codex-desktop-persistent
+      - type: bind
+        source: ../.private/files_enrollment_token
+        target: /opt/cynapsa-enhanced/secrets/files/enrollment_token
+        read_only: true
+      - type: bind
+        source: ../.private/client_enrollment_token
+        target: /opt/cynapsa-enhanced/secrets/client/enrollment_token
+        read_only: true
+      - type: bind
+        source: ../.private/litellm_api_key
+        target: /opt/cynapsa-enhanced/secrets/files/litellm_api_key
+        read_only: true
+    tmpfs:
+      - /run:rw,nosuid,nodev,mode=0755
+      - /tmp:rw,nosuid,nodev,mode=1777
+    shm_size: 2gb
+    mem_limit: 6g
+    cpus: 2.0
+    pids_limit: 2048
+    restart: unless-stopped
+    stop_grace_period: 45s
+    networks: [enhanced-local]
+
+networks:
+  enhanced-local:
+    ipam:
+      config:
+        - subnet: 10.55.67.0/24
+
+volumes:
+  enhanced-home:
+  enhanced-tailscale:
+  enhanced-machine:

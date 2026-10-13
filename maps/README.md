@@ -1,5 +1,10 @@
 # Demo maps agent
 
+For the separate enhanced deployment, use the mesh and peer IDs in
+`.env.example` and the current topology in the repository-root `README.md`.
+Historical cloud resource names later in this file describe the original demo,
+not this enhanced worker pool.
+
 Console alerts observe the SDK event stream independently of request handling
 and input. Example: `ALERT mesh connectivity: available -> degraded`, followed
 by recovery to `available` or failure to `unavailable`. SDK lifecycle changes
@@ -72,7 +77,7 @@ running container; subsequent runs reuse the rebuilt image.
 
 ## Model/tool and delivery bounds
 
-The working-tree app allows three model rounds and at most ten tool calls per
+The working-tree app allows ten model rounds and at most ten tool calls per
 round. The first round must call a tool. Details IDs must come from a prior
 search; search queries are 1–300 characters with up to five results, and detail
 IDs are 1–256 characters. No Routes/Roads API is provided. Missing/invalid tools

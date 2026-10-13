@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-IMAGE=${CYNAPSA_DEMO_ORCHESTRATOR_IMAGE:-cynapsa-demo-orchestrator:local}
+IMAGE=${CYNAPSA_DEMO_ORCHESTRATOR_IMAGE:-cynapsa-demo-enhanced-orchestrator:local}
 PLATFORM=${CYNAPSA_DEMO_PLATFORM:-}
 ENV_FILE=${CYNAPSA_DEMO_ORCHESTRATOR_ENV_FILE:-$ROOT/.env}
 github_token=${CYNAPSA_GITHUB_TOKEN:-}

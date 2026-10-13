@@ -144,7 +144,7 @@ def test_graph_searches_then_gets_details_and_formats_answer(monkeypatch):
     assert client.complete.call_count == 3
 
 
-def test_graph_stops_after_three_model_rounds(monkeypatch):
+def test_graph_stops_after_ten_model_rounds(monkeypatch):
     app = _maps_app(monkeypatch)
     client = SimpleNamespace(complete=Mock(return_value={
         "tool_calls": [_call("search_places", '{"query":"gym"}', "c1")],
@@ -153,5 +153,5 @@ def test_graph_stops_after_three_model_rounds(monkeypatch):
     with pytest.raises(app.cynapsa.RPCException) as failure:
         app.answer_question("Find a gym", client, places)
     assert failure.value.code == "maps_no_answer"
-    assert client.complete.call_count == 3
-    assert places.search.call_count == 3
+    assert client.complete.call_count == 10
+    assert places.search.call_count == 10

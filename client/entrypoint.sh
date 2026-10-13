@@ -4,7 +4,7 @@ set -eu
 state_directory=${CYNAPSA_STATE_DIRECTORY:-/var/lib/cynapsa}
 private_directory=${DEMO_PRIVATE_DIRECTORY:-/tmp/cynapsa-private}
 secret_source=${DEMO_SECRET_SOURCE_DIRECTORY:-/run/secrets}
-origin=${DEMO_ORCHESTRATOR_ORIGIN:-http://demo-orchestrator.local}
+origin=${DEMO_ORCHESTRATOR_ORIGIN:-http://orchestrator-enhanced.local}
 : "${DEMO_ORCHESTRATOR_AGENT_ID:?DEMO_ORCHESTRATOR_AGENT_ID is required}"
 
 mkdir -p "$state_directory" "$private_directory"
@@ -19,7 +19,7 @@ for profile_path in "$state_directory"/profile-v2-*.state; do
 done
 
 set -- cynapsa run --mesh-id "${DEMO_MESH_ID:?DEMO_MESH_ID is required}" \
-  --profile-id demo-client --map "$origin" "$DEMO_ORCHESTRATOR_AGENT_ID" rpc \
+  --profile-id demo-enhanced-client --map "$origin" "$DEMO_ORCHESTRATOR_AGENT_ID" rpc \
   --rpc-timeout-ms 140000
 if [ "${DEMO_FORCE_ENROLL:-}" = 1 ] || [ "$profile_present" = false ]; then
   if [ -n "${CYNAPSA_TOKEN:-}" ]; then
@@ -39,7 +39,8 @@ if [ "${DEMO_FORCE_ENROLL:-}" = 1 ] || [ "$profile_present" = false ]; then
 fi
 
 unset CYNAPSA_TOKEN
+app_directory=${DEMO_APP_DIRECTORY:-/app}
 if [ "${DEMO_CLIENT_QUIET:-}" = 1 ]; then
-  exec "$@" -- python /app/app.py --quiet
+  exec "$@" -- python "$app_directory/app.py" --quiet
 fi
-exec "$@" -- python /app/app.py
+exec "$@" -- python "$app_directory/app.py"

@@ -1,5 +1,11 @@
 # Files agent
 
+In the enhanced deployment, this app runs automatically inside the local
+desktop image alongside the interactive Client. See the repository-root
+`README.md` and `desktop/` for the actual startup and data directory.
+Independent-directory instructions below remain available for a standalone
+Files container.
+
 An ordinary FastAPI HTTP app with a local LangGraph. It imports no Cynapsa SDK:
 the container starts it with `cynapsa run`, which owns mesh login and routes
 incoming Cynapsa RPCs to `POST /files`. It answers questions

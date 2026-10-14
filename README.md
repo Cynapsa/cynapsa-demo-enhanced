@@ -32,33 +32,53 @@ not installed or started. Its authenticated noVNC GUI is exposed only on this Ma
 `https://localhost:18443/` (which opens the login page). Cynapsa works
 without Tailscale.
 
-Prerequisites: Docker Desktop, a GitHub token with read access to the private
-SDK and Go Core repositories, the four enrollment grants, and a LiteLLM key.
-`desktop/build.sh` fetches SDK/Core `main` during the Files image build and
-records their commits in `/opt/cynapsa/source-revisions`. The pinned upstream
-desktop commit is `2a1c0063f7246658e44c046651a970e08ca210f9`.
+The image contains the two apps, SDK, and Go Core, but **not** enrollment
+tokens or the LiteLLM key. Docker mounts those from ignored local files when
+the container starts. On the prepared demo laptop, those files and the image
+are already in place:
 
 ```sh
 cd desktop
-./prepare-local-secrets.sh /path/to/agents-info.txt /path/to/litellm_api_key
-cp .env.example .env
-# Set CYNAPSA_GITHUB_TOKEN in ../files/.env or in your shell; do not commit it.
-./run.sh --build
+./run.sh
 ```
 
-The preparation script writes ignored, mode-`0600` files under `../.private/`.
-It never copies tokens or the LLM key into an image. On this machine those
-files have already been prepared; `./run.sh` starts the existing local image
-without rebuilding. The desktop opens two terminals automatically, both idle:
-one already in the Files directory, one already in the Client directory. Type
-`./run.sh` in each terminal when ready. Files does not join the mesh
-until you start it. `./client.sh` is an alternative host-terminal launcher;
+`./run.sh` opens the desktop with two idle terminals: one already in the Files
+directory, one already in the Client directory. Open the GUI as described
+below, then type `./run.sh` in the Files terminal and `./run.sh` in the Client
+terminal. Neither agent joins the mesh until you start it. The AWS
+Orchestrator and GCP Maps agents must also be running for the full demo to
+answer questions. `./client.sh` is an alternative host-terminal launcher;
 run only one Client instance at a time.
 To replace a revoked installation using the mounted enrollment token, run
 `./run.sh --force-enroll` in that agent's terminal instead.
 In the Client terminal, use `./run.sh --silent` to keep only the question
 prompt, answers, and request failures; combine it with `--force-enroll` when
 needed. The existing `--quiet` option is an alias.
+
+For a **fresh clone or another Apple Silicon Mac**, first install Docker
+Desktop. Copy `desktop/.env.example` to `desktop/.env` and check the mesh and
+all four peer IDs; the example values are for this demo, not new identities.
+Prepare just the two local enrollment grants (Files and Client) and a LiteLLM
+key with:
+
+```sh
+cd desktop
+./prepare-local-secrets.sh /path/to/agents-info.txt /path/to/litellm_api_key
+cp .env.example .env
+# Check and edit .env for your mesh and agent identities.
+# Set CYNAPSA_GITHUB_TOKEN in ../files/.env or your shell, then:
+./run.sh --build
+```
+
+The grant file must contain `Files-enhanced:` and `Client-enhanced:` labels,
+each followed on the next line by `export Cynapsa_TOKEN="..."`. The preparation
+script writes only the two local tokens and LiteLLM key into ignored,
+mode-`0600` files under `../.private/`; it does not add them to the image.
+The GitHub token needs read access to the private SDK and Go Core repositories
+for the build. `desktop/build.sh` fetches SDK/Core `main` and records their
+commits in `/opt/cynapsa/source-revisions`. The pinned upstream desktop
+commit is `2a1c0063f7246658e44c046651a970e08ca210f9`. GitHub stores this
+image's build files, not a prebuilt Docker image.
 
 To open the graphical desktop, run the following in your own trusted terminal
 and open the `noVNC one-click URL` it prints:

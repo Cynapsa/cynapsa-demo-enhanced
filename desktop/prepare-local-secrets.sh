@@ -33,7 +33,5 @@ extract_token() {
 
 extract_token Files-enhanced "$root/.private/files_enrollment_token"
 extract_token Client-enhanced "$root/.private/client_enrollment_token"
-extract_token Maps-enhanced "$root/.private/maps_enrollment_token"
-extract_token Orchestrator-enhanced "$root/.private/orchestrator_enrollment_token"
 install -m 0600 "$litellm_file" "$root/.private/litellm_api_key"
 echo 'Local desktop secrets prepared in ignored .private/ files.'

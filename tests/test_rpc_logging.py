@@ -28,7 +28,7 @@ def lines(caplog):
 
 
 @pytest.mark.parametrize("entity", ENTITIES)
-def test_outbound_logs_names_ids_and_full_request_and_response(entity, caplog, monkeypatch):
+def test_outbound_logs_simple_peer_name_and_full_request_and_response(entity, caplog, monkeypatch):
     logs = helper(entity)
     target = "maps@example.test"
     monkeypatch.setenv("DEMO_MAPS_AGENT_ID", target)
@@ -39,13 +39,13 @@ def test_outbound_logs_names_ids_and_full_request_and_response(entity, caplog, m
         assert logs.request_sync(session, entity, target, payload, path="/ask", ttl_ms=123) is result
     session.request.assert_called_once_with(target, payload, path="/ask", ttl_ms=123)
     sent, received = lines(caplog)
-    assert sent.startswith(f"[{entity}] request sent to maps ({target}) /ask: ")
+    assert sent.startswith('[cynapsa] message sent to "maps": ')
     assert payload["prompt"] in sent
-    assert received == f'[{entity}] response received from maps ({target}) /ask: {{"answer": "Gym A"}}'
+    assert received == '[cynapsa] message received from "maps": {"answer": "Gym A"}'
 
 
 @pytest.mark.parametrize("entity", ENTITIES)
-def test_inbound_async_logs_body_and_handler_return(entity, caplog, monkeypatch):
+def test_inbound_async_logs_body_without_claiming_handler_return_was_sent(entity, caplog, monkeypatch):
     logs = helper(entity)
     sender = "client@example.test"
     monkeypatch.setenv("DEMO_CLIENT_AGENT_ID", sender)
@@ -61,9 +61,9 @@ def test_inbound_async_logs_body_and_handler_return(entity, caplog, monkeypatch)
     assert inspect.iscoroutinefunction(receive)
     with caplog.at_level(logging.INFO):
         assert asyncio.run(receive(request)) is result
-    arrived, returned = lines(caplog)
-    assert arrived == f'[{entity}] request received from client ({sender}) /maps: {{"question": "private prompt"}}'
-    assert returned == f'[{entity}] response returned to client ({sender}) /maps: {{"answer": "private result"}}'
+    assert lines(caplog) == [
+        '[cynapsa] message received from "client": {"question": "private prompt"}'
+    ]
 
 
 @pytest.mark.parametrize("entity", ENTITIES)
@@ -79,8 +79,8 @@ def test_failed_request_logs_error_and_preserves_exception(entity, asynchronous,
             logs.request_sync(session, entity, "peer@example.test", {}, path="/maps")
     assert caught.value is failure
     assert lines(caplog) == [
-        f"[{entity}] request sent to peer@example.test /maps: {{}}",
-        f"[{entity}] request failed to peer@example.test /maps: RuntimeError: remote refused",
+        '[cynapsa] message sent to "peer@example.test": {}',
+        '[cynapsa] message to "peer@example.test" failed: RuntimeError: remote refused',
     ]
 
 
@@ -96,7 +96,7 @@ def test_handler_error_and_cancellation_are_not_swallowed(entity, caplog):
     with caplog.at_level(logging.INFO), pytest.raises(RuntimeError) as caught:
         receive(SimpleNamespace(mode="rpc", body=b"hello"))
     assert caught.value is failure
-    assert lines(caplog)[-1] == f"[{entity}] request failed from unknown /: RuntimeError: handler failed"
+    assert lines(caplog)[-1] == '[cynapsa] message from "unknown" failed: RuntimeError: handler failed'
 
     @logs.log_handler(entity)
     async def cancelled(_):
@@ -119,7 +119,7 @@ def test_msg_logs_only_request_and_unknown_peer_keeps_id(entity, caplog):
     with caplog.at_level(logging.INFO):
         receive(SimpleNamespace(mode="msg", path="/files", from_agent_id="other@example.test",
                                 body=b"plain text"))
-    assert lines(caplog) == [f'[{entity}] request received from other@example.test /files: "plain text"']
+    assert lines(caplog) == ['[cynapsa] message received from "other@example.test": "plain text"']
 
 
 @pytest.mark.parametrize("entity", ENTITIES)
@@ -136,7 +136,7 @@ def test_http_access_logs_quiet_but_warnings_and_cynapsa_visible(entity, caplog,
                           entity, "peer@example.test", {"question": "hello"}, path="/ask")
     assert "HTTP Request:" not in caplog.text
     assert "warning retained" in caplog.text
-    assert "request sent to" in caplog.text
+    assert '[cynapsa] message sent to "peer@example.test"' in caplog.text
 
 
 def test_helpers_stay_identical_and_are_packaged_in_each_directory():
@@ -159,8 +159,8 @@ def test_return_log_does_not_claim_sdk_delivery(entity, caplog):
     with caplog.at_level(logging.INFO):
         returned = receive(SimpleNamespace(mode="rpc"))
     assert returned is value
-    assert "response returned to" in lines(caplog)[-1]
-    assert "response sent" not in caplog.text
+    assert lines(caplog) == ['[cynapsa] message received from "unknown": null']
+    assert "message sent" not in caplog.text
     with pytest.raises((TypeError, ValueError)):
         sdk.CynapsaResponse.from_value(returned)
 
@@ -178,11 +178,11 @@ def test_real_sdk_error_preserves_original_exception(entity, caplog):
     with caplog.at_level(logging.INFO), pytest.raises(sdk.RPCException) as caught:
         receive(SimpleNamespace(mode="rpc"))
     assert caught.value is failure
-    assert "request failed" in lines(caplog)[-1]
+    assert "message from \"unknown\" failed" in lines(caplog)[-1]
     response = sdk.CynapsaResponse.from_rpc_exception(failure)
     remote = sdk.RemoteNativeError(0, response)
     session = SimpleNamespace(request=Mock(side_effect=remote))
     with caplog.at_level(logging.INFO), pytest.raises(sdk.RemoteNativeError) as caught:
         logs.request_sync(session, entity, "peer@example.test", {}, path="/ask")
     assert caught.value is remote
-    assert "request failed" in lines(caplog)[-1]
+    assert "message to \"peer@example.test\" failed" in lines(caplog)[-1]

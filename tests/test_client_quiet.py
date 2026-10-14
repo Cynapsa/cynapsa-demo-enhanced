@@ -46,6 +46,8 @@ def test_entrypoint_forwards_quiet_in_all_login_paths(tmp_path, enrollment, orig
            "DEMO_SECRET_SOURCE_DIRECTORY": str(tmp_path / "secrets"),
            "DEMO_CLIENT_QUIET": "1", "CYNAPSA_TOKEN": "test-only-token",
            "DEMO_MESH_ID": "test-mesh", "DEMO_ORCHESTRATOR_AGENT_ID": "orchestrator@example.test",
+           "DEMO_MAPS_AGENT_ID": "maps@example.test",
+           "DEMO_FILES_AGENT_ID": "files@example.test",
            "DEMO_FORCE_ENROLL": "1" if enrollment == "force" else ""}
     env.pop("DEMO_ORCHESTRATOR_ORIGIN", None)
     if origin is not None:
@@ -57,6 +59,8 @@ def test_entrypoint_forwards_quiet_in_all_login_paths(tmp_path, enrollment, orig
     assert len(commands) == 1
     assert commands[0].startswith("run --mesh-id test-mesh --profile-id demo-enhanced-client ")
     assert f"--map {origin or 'http://orchestrator-enhanced.local'} orchestrator@example.test rpc" in commands[0]
+    assert "--map http://maps-enhanced.local maps@example.test rpc" in commands[0]
+    assert "--map http://files-enhanced.local files@example.test rpc" in commands[0]
     assert "--rpc-timeout-ms 140000" in commands[0]
     assert commands[0].endswith("-- python /app/app.py --quiet")
     assert ("--token-file" in commands[0]) is (enrollment != "cached")

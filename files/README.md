@@ -43,6 +43,11 @@ container's `DEMO_FILES_DIRECTORY` accordingly. The non-root container user
 permissions on unrelated private documents. Mount only a dedicated database.
 Documents are not copied into the image or Cynapsa state volume.
 
+The Files launcher also needs the Orchestrator, Client, and Maps agent IDs in
+its `.env`. It registers their virtual origins solely so the SDK can present
+authenticated inbound senders as familiar HTTP-style addresses. The Files app
+still does not make outgoing calls to those aliases.
+
 Get this identity's full bare agent JID from the portal's agent identity page
 and copy it into the orchestrator's `.env`. The HTTP app itself cannot inspect
 or print the Cynapsa identity:
@@ -68,9 +73,11 @@ instructions. Not-found is a successful answer, not a transport error. Invalid
 questions return HTTP 400, model unavailability 503, and unexpected handler
 failures a sanitized 502.
 
-The Uvicorn listener binds only `127.0.0.1:8000` inside the container. No host
-port is published. FastAPI startup prints `demo-files HTTP app ready on /files`;
-this means the app is running, not that a particular remote peer can reach it.
+With the SDK from `main`, Uvicorn runs the FastAPI lifespan but does not
+bind `127.0.0.1:8000` or any other HTTP listener. Inbound requests reach the
+app only through Cynapsa. FastAPI startup prints
+`[cynapsa] files agent ready`; this means the app is running, not that
+a particular remote peer can reach it.
 
 ## Tools and limits
 
@@ -118,10 +125,13 @@ in its volume. Real `.env`, keys, and documents must not be committed.
 
 ## Traffic logs
 
-The plain HTTP app logs the question and response content, including file
-excerpts, without redaction or truncation. Use only non-sensitive demo files.
-It does not receive authenticated peer-ID metadata through the ASGI interface,
-so it does not label the sender. Headers are not logged. Uvicorn access logs and
+The app logs each incoming Cynapsa question as
+`[cynapsa] message received from "http://orchestrator-enhanced.local": ...`
+when its first reverse mapping matches the authenticated sender. An unmapped
+sender is shown by its verified agent ID; ordinary HTTP requests without
+Cynapsa metadata show `unknown`. The message content is not redacted or
+truncated, so use only non-sensitive demo files. It does not
+log a handler return as a delivered response. Headers are not logged. Uvicorn access logs and
 successful LLM HTTP access logs are quiet; warnings and errors remain. Unlike
 the native demo entities, this app has no SDK event consumer or connection
 alerts. Rebuild with `./run.sh --build`.

@@ -21,8 +21,8 @@ then formats the final answer. Each request has fresh graph state; conversation
 memory belongs to the orchestrator. Only JSON RPC data crosses Cynapsa, not
 graph objects or shared process memory.
 
-The directory is independently runnable. Its image build fetches the Python
-SDK and Go Core `main` branches from GitHub; it does not use
+The directory is independently runnable. Its image build fetches Python SDK
+and Go Core `main` from GitHub; it does not use
 repository-root files or sibling directories. Set `CYNAPSA_GITHUB_TOKEN`
 in this directory's ignored `.env` for builds. It is not sent to the
 running container.
@@ -95,11 +95,12 @@ not include unpushed local changes by assumption.
 
 ## Traffic logs
 
-The app logs incoming Cynapsa request bodies and handler return values in a
-simple human-readable format, with the peer's full ID. Set
-`DEMO_ORCHESTRATOR_AGENT_ID` to label that incoming peer as `orchestrator`.
+The app logs incoming Cynapsa messages as
+`[cynapsa] message received from "peer": ...`. A known peer ID is displayed
+by name; otherwise its bare ID is shown. Set `DEMO_ORCHESTRATOR_AGENT_ID` to
+label that incoming peer as `orchestrator`. Handler returns are not logged as
+sent messages because SDK validation and transmission happen afterward.
 There is no redaction or truncation: do not send sensitive content to this demo
 if cloud logs are not appropriate. Headers are not logged. LLM/Places HTTP
-access logs are quiet; warnings/errors and connection alerts remain. A handler
-return precedes SDK validation/transmission and is not a delivery receipt.
+access logs are quiet; warnings/errors and connection alerts remain.
 Rebuild with `./run.sh --build`; cloud images need redeployment.

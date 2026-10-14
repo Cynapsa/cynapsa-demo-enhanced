@@ -30,8 +30,8 @@ for option in "$@"; do
   case "$option" in
     --build) build_requested=true ;;
     --force-enroll) force_enroll=true ;;
-    --quiet) quiet=true ;;
-    *) echo "usage: ./run.sh [--build] [--force-enroll] [--quiet]" >&2; exit 64 ;;
+    --quiet|--silent) quiet=true ;;
+    *) echo "usage: ./run.sh [--build] [--force-enroll] [--silent]" >&2; exit 64 ;;
   esac
 done
 if [[ -n ${CYNAPSA_DEMO_CLIENT_VOLUME:-} ]]; then
@@ -73,7 +73,7 @@ if [[ -f "$ENV_FILE" ]]; then
   awk '$0 !~ /^[[:space:]]*CYNAPSA_GITHUB_TOKEN=/' "$ENV_FILE" > "$runtime_env"
   docker_args+=(--env-file "$runtime_env")
 fi
-for variable in CYNAPSA_TOKEN DEMO_MESH_ID DEMO_ORCHESTRATOR_AGENT_ID DEMO_ORCHESTRATOR_ORIGIN DEMO_CONVERSATION_ID; do
+for variable in CYNAPSA_TOKEN DEMO_MESH_ID DEMO_ORCHESTRATOR_AGENT_ID DEMO_MAPS_AGENT_ID DEMO_FILES_AGENT_ID DEMO_ORCHESTRATOR_ORIGIN DEMO_MAPS_ORIGIN DEMO_FILES_ORIGIN DEMO_CONVERSATION_ID; do
   [[ -z ${!variable:-} ]] || docker_args+=(--env "$variable")
 done
 

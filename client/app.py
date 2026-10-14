@@ -12,16 +12,17 @@ import uuid
 import requests
 
 
-LOG = logging.getLogger("demo.http")
+LOG = logging.getLogger("demo.cynapsa")
 DEFAULT_ORIGIN = "http://orchestrator-enhanced.local"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Demo chat client")
-    parser.add_argument("--quiet", action="store_true", help="Hide diagnostic logs and startup messages")
+    parser.add_argument("--quiet", "--silent", dest="quiet", action="store_true",
+                        help="Hide diagnostic logs and startup messages")
     parser.add_argument("--conversation-id", default=os.environ.get("DEMO_CONVERSATION_ID"))
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     logging.getLogger("urllib3").setLevel(logging.WARNING)
     if args.quiet:
         logging.disable(logging.CRITICAL)
@@ -50,12 +51,12 @@ def main() -> None:
             continue
 
         payload = {"prompt": prompt, "conversation_id": conversation_id}
-        LOG.info("[client] HTTP request sent to orchestrator %s: %s", url,
+        LOG.info('[cynapsa] message sent to "orchestrator": %s',
                  json.dumps(payload, ensure_ascii=False))
         try:
             response = requests.post(url, json=payload, timeout=140)
-            LOG.info("[client] HTTP response received from orchestrator %s (%s): %s",
-                     url, response.status_code, response.text)
+            LOG.info('[cynapsa] message received from "orchestrator": %s',
+                     response.text)
             response.raise_for_status()
             data = response.json()
             print(data["answer"], flush=True)
@@ -64,7 +65,7 @@ def main() -> None:
             for source in (data.get("files") or {}).get("sources", []):
                 print(f"  File: {source['path']}:{source.get('line', source.get('start_line', 1))}", flush=True)
         except Exception as exc:
-            LOG.warning("[client] HTTP request to orchestrator failed: %r", exc)
+            LOG.warning('[cynapsa] message to "orchestrator" failed: %r', exc)
             print("Request failed: The demo could not answer", flush=True)
 
 

@@ -207,6 +207,9 @@ class ForceEnrollTests(unittest.TestCase):
                 "DEMO_SECRET_SOURCE_DIRECTORY": str(root / "secrets"),
                 "CYNAPSA_LOG": str(cli_log),
                 "DEMO_MESH_ID": "test-mesh",
+                "DEMO_ORCHESTRATOR_AGENT_ID": "orchestrator@example.test",
+                "DEMO_CLIENT_AGENT_ID": "client@example.test",
+                "DEMO_MAPS_AGENT_ID": "maps@example.test",
                 "LITELLM_API_KEY": "test-only-key",
             })
             command = ["/bin/sh", str(ROOT / "files/entrypoint.sh")]
@@ -219,6 +222,9 @@ class ForceEnrollTests(unittest.TestCase):
             self.assertEqual(enrolled.returncode, 0, enrolled.stderr)
             self.assertIn(
                 f"run --mesh-id test-mesh --profile-id demo-enhanced-files --rpc-timeout-ms 110000 "
+                "--map http://orchestrator-enhanced.local orchestrator@example.test rpc "
+                "--map http://client-enhanced.local client@example.test rpc "
+                "--map http://maps-enhanced.local maps@example.test rpc "
                 f"--token-file {private / 'enrollment_token'} -- uvicorn app:app "
                 "--host 127.0.0.1 --port 8000 --no-access-log",
                 cli_log.read_text(),

@@ -1,4 +1,4 @@
-"""Simple application-level Cynapsa request and response logs.
+"""Simple application-level Cynapsa message logs.
 
 Kept in each entity directory so it can be copied and built independently.
 These are observations, not transport delivery receipts or SDK event consumers.
@@ -18,7 +18,7 @@ LOG = logging.getLogger("demo.cynapsa")
 
 
 def configure_logging() -> None:
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     # Keep useful warnings/errors without access logs for LLM/Places calls.
     for name in ("httpx", "httpcore", "urllib3", "requests"):
         logging.getLogger(name).setLevel(logging.WARNING)
@@ -27,7 +27,7 @@ def configure_logging() -> None:
 def _peer(identity):
     for name in ("client", "orchestrator", "maps", "files"):
         if identity and identity == os.environ.get(f"DEMO_{name.upper()}_AGENT_ID"):
-            return f"{name} ({identity})"
+            return name
     return identity or "unknown"
 
 
@@ -44,30 +44,23 @@ def _content(value):
 
 @contextmanager
 def _traffic(role, *, incoming, peer, path, content, mode="rpc"):
-    source = role.removeprefix("demo-")
+    del role, path, mode
     target = _peer(peer)
-    direction = "from" if incoming else "to"
-    LOG.info("[%s] request %s %s %s %s: %s",
-             source, "received" if incoming else "sent",
-             direction, target, path or "/", _content(content))
+    LOG.info('[cynapsa] message %s %s "%s": %s',
+             "received" if incoming else "sent",
+             "from" if incoming else "to", target, _content(content))
     outcome = {}
     try:
         yield outcome
     except BaseException as exc:
-        LOG.info("[%s] request failed %s %s %s: %s: %s",
-                 source, direction, target, path or "/",
-                 type(exc).__name__, exc)
+        LOG.warning('[cynapsa] message %s "%s" failed: %s: %s',
+                    "from" if incoming else "to", target,
+                    type(exc).__name__, exc)
         raise
     else:
-        value = outcome.get("value")
-        if incoming:
-            if mode != "msg":
-                # The SDK still needs to validate and transmit this return value.
-                LOG.info("[%s] response returned to %s %s: %s",
-                         source, target, path or "/", _content(value))
-        else:
-            LOG.info("[%s] response received from %s %s: %s",
-                     source, target, path or "/", _content(value))
+        if not incoming:
+            LOG.info('[cynapsa] message received from "%s": %s',
+                     target, _content(outcome.get("value")))
 
 
 def log_handler(role):

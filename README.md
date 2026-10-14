@@ -17,6 +17,12 @@ The wire mesh ID is `demo_enhanced_cynapsa_demo` (the portal display name is
 are in [`desktop/.env.example`](desktop/.env.example) and the per-agent
 `.env.example` files; they are not credentials.
 
+The monkey Client and Files roles configure HTTP-style origins for every
+other demo identity. The SDK uses the receiver's own map in reverse to present
+an authenticated sender in `request.state.cynapsa_sender` (first URL wins if
+several target one ID). Native Orchestrator and Maps handlers continue to see
+bare Cynapsa agent IDs. These origins are local aliases, not network servers.
+
 ## Run Files and Client on an Apple Silicon Mac
 
 The local image derives from the pinned

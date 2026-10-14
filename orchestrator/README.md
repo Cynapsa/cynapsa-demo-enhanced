@@ -30,8 +30,8 @@ receives the generic `The demo could not answer` RPC error for those downstream
 native/internal failures. Validation, timeout, and model failures have distinct
 public codes below. Treat terminal details/traces as private.
 
-The directory is independently runnable. Its image build fetches the Python
-SDK and Go Core `main` branches from GitHub; it does not use
+The directory is independently runnable. Its image build fetches Python SDK
+and Go Core `main` from GitHub; it does not use
 repository-root files or sibling directories. Set `CYNAPSA_GITHUB_TOKEN`
 in this directory's ignored `.env` for builds. It is not sent to the
 running container.
@@ -175,12 +175,13 @@ Do not use NFS/EFS for the live SQLite WAL database or share it between replicas
 
 ## Traffic logs
 
-The app logs full Cynapsa request/response content for `/ask` and downstream
-Maps/Files calls, with each peer's full ID. Set `DEMO_CLIENT_AGENT_ID` to label
-the incoming client as `client`; outgoing Maps/Files names come from their
-destination-ID variables. There is no redaction or truncation, so prompts and
+The app logs Cynapsa message sends and receives with full content. A known
+peer ID is displayed by name; otherwise its bare ID is shown. Set
+`DEMO_CLIENT_AGENT_ID` to label the incoming client as `client`; outgoing
+Maps/Files names come from their destination-ID variables. Handler returns
+are not logged as sent messages because SDK validation and transmission happen
+afterward. There is no redaction or truncation, so prompts and
 file evidence may appear in cloud logs. Headers are not logged. LLM HTTP access
 logs are quiet. Existing warnings/error diagnostics and connection alerts
-remain. A handler return precedes SDK validation/transmission and is not a
-delivery receipt.
+remain.
 Rebuild with `./run.sh --build`; cloud images need redeployment.

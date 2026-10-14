@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Cynapsa Client
+Comment=Idle terminal for the Client
+Exec=/usr/bin/xfce4-terminal --disable-server --title=Client --command=/opt/cynapsa-enhanced/terminal-client.sh
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true

@@ -1,6 +1,12 @@
 #!/bin/sh
 set -eu
 
+# Keep one Files installation active even if the terminal is opened twice.
+if [ "${1:-}" != --locked ]; then
+  exec flock -n -E 75 /run/cynapsa-enhanced-files.lock "$0" --locked
+fi
+shift
+
 export CYNAPSA_STATE_DIRECTORY=/home/codex/.local/share/cynapsa-enhanced/files
 export DEMO_PRIVATE_DIRECTORY=/tmp/cynapsa-enhanced-files-private
 export DEMO_SECRET_SOURCE_DIRECTORY=/tmp/cynapsa-enhanced-files-secrets

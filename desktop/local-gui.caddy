@@ -1,0 +1,33 @@
+{
+    admin off
+    log default {
+        output discard
+    }
+}
+
+# Docker publishes this TLS listener only on the Mac's 127.0.0.1. The upstream
+# gateway remains on the container's private loopback and authenticates every
+# desktop request. Do not expose its raw noVNC or VNC ports.
+https://localhost:9443 {
+    tls internal
+    log {
+        output discard
+    }
+    header {
+        -Server
+        Cache-Control "no-store"
+        Referrer-Policy "no-referrer"
+    }
+    handle /login/* {
+        reverse_proxy 127.0.0.1:8443
+    }
+    handle / {
+        redir * /login/ 302
+    }
+    handle /healthz {
+        respond "ready" 200
+    }
+    handle {
+        respond 404
+    }
+}

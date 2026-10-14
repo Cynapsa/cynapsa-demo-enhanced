@@ -25,11 +25,12 @@ bare Cynapsa agent IDs. These origins are local aliases, not network servers.
 
 ## Run Files and Client on an Apple Silicon Mac
 
-The local image derives from the pinned
-[`eladrave/codex-desktop-container`](https://github.com/eladrave/codex-desktop-container)
-source. This deployment uses its container desktop but does **not** enroll
-Tailscale or expose its GUI on a host port. Cynapsa works without Tailscale;
-the upstream full installer only needs it for remote desktop access.
+The local image uses only the Xfce/noVNC and authenticated-gateway scripts from
+the pinned [`eladrave/codex-desktop-container`](https://github.com/eladrave/codex-desktop-container)
+source. Chrome, Codex Desktop, Tailscale, guest access, and Playwright MCP are
+not installed or started. Its authenticated noVNC GUI is exposed only on this Mac at
+`https://localhost:18443/` (which opens the login page). Cynapsa works
+without Tailscale.
 
 Prerequisites: Docker Desktop, a GitHub token with read access to the private
 SDK and Go Core repositories, the four enrollment grants, and a LiteLLM key.
@@ -43,24 +44,49 @@ cd desktop
 cp .env.example .env
 # Set CYNAPSA_GITHUB_TOKEN in ../files/.env or in your shell; do not commit it.
 ./run.sh --build
-./client.sh
 ```
 
 The preparation script writes ignored, mode-`0600` files under `../.private/`.
 It never copies tokens or the LLM key into an image. On this machine those
 files have already been prepared; `./run.sh` starts the existing local image
-without rebuilding. The Files agent starts automatically under Supervisor;
-`./client.sh` starts the interactive client inside the same container.
+without rebuilding. The desktop opens two terminals automatically, both idle:
+one already in the Files directory, one already in the Client directory. Type
+`./run.sh` in each terminal when ready. Files does not join the mesh
+until you start it. `./client.sh` is an alternative host-terminal launcher;
+run only one Client instance at a time.
+To replace a revoked installation using the mounted enrollment token, run
+`./run.sh --force-enroll` in that agent's terminal instead.
+In the Client terminal, use `./run.sh --silent` to keep only the question
+prompt, answers, and request failures; combine it with `--force-enroll` when
+needed. The existing `--quiet` option is an alias.
 
-Put documents for the Files agent in
-`/home/codex/Projects/enhanced-files` inside the desktop container. The
-container's home volume persists them and both Cynapsa installation profiles.
+To open the graphical desktop, run the following in your own trusted terminal
+and open the `noVNC one-click URL` it prints:
+
+```sh
+docker exec -it cynapsa-demo-enhanced-desktop-desktop-1 remote-browser-credentials
+```
+
+The URL is a full-desktop credential: keep it private and do not paste it into
+chat or logs. The browser may warn about the container's locally generated
+HTTPS certificate; approve it only after checking that the address is exactly
+`https://localhost:18443`. The raw VNC/noVNC ports are not published, and the
+local HTTPS listener exposes only `/login/*`, not the browser MCP endpoint.
+
+The desktop has `demo-location.txt` and a `Files-Database` folder shortcut.
+Both lead to the Files agent's persistent data directory at
+`/home/codex/Projects/enhanced-files`. Editing the desktop file edits the same
+file the agent reads. On first start, the image adds fictional people,
+projects, and events text records to that directory; it never replaces an
+existing record with the same name. The home volume also persists both
+Cynapsa installation profiles.
 Only put data there that you are comfortable sending to the model: demo
 request/response logs contain full content without redaction. Inspect status
 with `docker compose -f compose.yaml ps` and logs with
 `docker compose -f compose.yaml logs -f desktop`. Stop with
-`docker compose -f compose.yaml down`; this preserves volumes. The source
-desktop image includes a Tailscale daemon but it is not enrolled in a tailnet.
+`docker compose -f compose.yaml down`; this preserves volumes. The old
+Tailscale volume and full desktop image were not deleted, but the slim desktop
+does not mount or run them.
 
 ## Other deployments
 

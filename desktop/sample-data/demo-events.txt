@@ -1,0 +1,4 @@
+These are fictional events for the Cynapsa demo.
+The Lantern team meetup is at Seattle Center in Seattle on November 20, 2026.
+The Compass team meetup is at Zilker Park in Austin on December 4, 2026.
+The demo team's preferred outing is a short walk followed by a nearby cafe.

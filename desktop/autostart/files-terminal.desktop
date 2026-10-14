@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Cynapsa Files Agent
+Comment=Idle terminal for the Files agent
+Exec=/usr/bin/xfce4-terminal --disable-server --title=Files-agent --command=/opt/cynapsa-enhanced/terminal-files.sh
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true

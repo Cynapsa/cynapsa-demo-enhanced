@@ -1,0 +1,5 @@
+These are fictional projects for the Cynapsa demo.
+Project Lantern is a neighborhood guide prototype owned by Alex Rivera.
+Project Lantern's next planning meeting is on November 12, 2026, in Seattle.
+Project Compass is a walking-tour prototype owned by Jamie Chen.
+Project Compass focuses on public art near downtown Austin.

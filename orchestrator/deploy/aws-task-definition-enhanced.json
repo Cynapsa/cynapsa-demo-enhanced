@@ -27,7 +27,7 @@
   "containerDefinitions": [
     {
       "name": "demo-enhanced-orchestrator",
-      "image": "821211778460.dkr.ecr.us-east-1.amazonaws.com/cynapsa-demo-enhanced-orchestrator@sha256:170fa0dd3b166d097e44f67634c6f9aa82edc99cccd5afe26932401a225b545d",
+      "image": "821211778460.dkr.ecr.us-east-1.amazonaws.com/cynapsa-demo-enhanced-orchestrator@sha256:597c0828b3e3548c324bbf7a46b118581af112f59fcfd68f46c6ced0968129b2",
       "cpu": 0,
       "essential": true,
       "user": "65532:65532",

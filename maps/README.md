@@ -22,7 +22,7 @@ memory belongs to the orchestrator. Only JSON RPC data crosses Cynapsa, not
 graph objects or shared process memory.
 
 The directory is independently runnable. Its image build fetches Python SDK
-and Go Core `main` from GitHub; it does not use
+and Go Core `demo-enhanced` from GitHub; it does not use
 repository-root files or sibling directories. Set `CYNAPSA_GITHUB_TOKEN`
 in this directory's ignored `.env` for builds. It is not sent to the
 running container.

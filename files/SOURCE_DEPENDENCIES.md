@@ -1,7 +1,7 @@
 # GitHub source dependencies
 
-This directory builds independently. Its Dockerfile fetches the SDK and Go Core `main`
-branch heads from:
+This directory builds independently. Its Dockerfile fetches SDK and Go Core
+`demo-enhanced` from:
 
 - `https://github.com/Cynapsa/cynapsagocore.git`
 - `https://github.com/Cynapsa/cynapsa-python-sdk.git`
@@ -20,7 +20,7 @@ sources.
 Incompatible headers/conformance still fail the build.
 ## Source versus local changes
 
-The Dockerfile clones remote `main` heads, never a sibling checkout,
+The Dockerfile clones the configured remote branch heads, never a sibling checkout,
 vendored tree, or unpushed local SDK/Core edit. Changes made after the last
 push are not in a Docker build.
 Existing containers are not updated by a source push: rebuild and verify the
@@ -47,7 +47,7 @@ fetched SDK manifest hashes and Core contract files do not agree; never bypass i
 
 `run.sh` builds only for a missing selected image or `--build`; `--force-enroll`
 is not a rebuild flag. Direct `build.sh` defaults to the role's `:local` tag,
-while `run.sh` uses `:main-<Docker-server-arch>`. Set the same
+while `run.sh` uses `:demo-enhanced-<Docker-server-arch>`. Set the same
 role-specific image override for both, or use `run.sh --build`. Platform,
 image, environment-file, and volume overrides are shell controls, not loaded
 from the entity runtime env file. Existing containers retain their original

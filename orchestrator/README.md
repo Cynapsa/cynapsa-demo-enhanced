@@ -23,7 +23,7 @@ The async native SDK must dispatch handlers on the persistent loop that owns
 the session, graph, and SQLite saver. Keep that loop running through
 `await session.close()`; per-request `asyncio.run()` dispatch is incompatible
 with reused async locks. This requires the async-dispatch fix on the SDK's
-`main` branch; rebuilding against an older SDK does not include it.
+`demo-enhanced` branch; rebuilding against an older SDK does not include it.
 Downstream native and canonical remote errors are logged with their actual
 status, code, message, and public details in this agent's terminal. The client
 receives the generic `The demo could not answer` RPC error for those downstream
@@ -31,7 +31,7 @@ native/internal failures. Validation, timeout, and model failures have distinct
 public codes below. Treat terminal details/traces as private.
 
 The directory is independently runnable. Its image build fetches Python SDK
-and Go Core `main` from GitHub; it does not use
+and Go Core `demo-enhanced` from GitHub; it does not use
 repository-root files or sibling directories. Set `CYNAPSA_GITHUB_TOKEN`
 in this directory's ignored `.env` for builds. It is not sent to the
 running container.

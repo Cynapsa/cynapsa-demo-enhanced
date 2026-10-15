@@ -4,7 +4,7 @@ The client runs on your laptop and reaches the orchestrator over Cynapsa.
 The orchestrator and maps agents must already be running, whether locally or
 remotely. You need Docker and a Cynapsa enrollment token. The application and
 Docker build live in this directory. The Python SDK and Go Core are fetched
-from `main` during the image build.
+from `demo-enhanced` during the image build.
 
 ## Requirements
 

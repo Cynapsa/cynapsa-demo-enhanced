@@ -37,6 +37,12 @@ tokens or the LiteLLM key. Docker mounts those from ignored local files when
 the container starts. On the prepared demo laptop, those files and the image
 are already in place:
 
+All enhanced-demo image builds fetch the dedicated `demo-enhanced` branches of
+`Cynapsa/cynapsagocore` and `Cynapsa/cynapsa-python-sdk`, initially copied
+from their respective `main` branches. Later changes to either `main` do not
+change this demo. Existing images also remain unchanged until rebuilt and
+redeployed; verify their exact commits in `/opt/cynapsa/source-revisions`.
+
 ```sh
 cd desktop
 ./run.sh
@@ -75,7 +81,7 @@ each followed on the next line by `export Cynapsa_TOKEN="..."`. The preparation
 script writes only the two local tokens and LiteLLM key into ignored,
 mode-`0600` files under `../.private/`; it does not add them to the image.
 The GitHub token needs read access to the private SDK and Go Core repositories
-for the build. `desktop/build.sh` fetches SDK/Core `main` and records their
+for the build. `desktop/build.sh` fetches SDK/Core `demo-enhanced` and records their
 commits in `/opt/cynapsa/source-revisions`. The pinned upstream desktop
 commit is `2a1c0063f7246658e44c046651a970e08ca210f9`. GitHub stores this
 image's build files, not a prebuilt Docker image.

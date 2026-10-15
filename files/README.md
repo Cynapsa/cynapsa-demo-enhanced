@@ -73,7 +73,7 @@ instructions. Not-found is a successful answer, not a transport error. Invalid
 questions return HTTP 400, model unavailability 503, and unexpected handler
 failures a sanitized 502.
 
-With the SDK from `main`, Uvicorn runs the FastAPI lifespan but does not
+With the SDK from `demo-enhanced`, Uvicorn runs the FastAPI lifespan but does not
 bind `127.0.0.1:8000` or any other HTTP listener. Inbound requests reach the
 app only through Cynapsa. FastAPI startup prints
 `[cynapsa] files agent ready`; this means the app is running, not that
@@ -113,7 +113,7 @@ ask about its mounted documents; there is no per-document/user access control.
 Never point this agent at your whole home directory or a secret store.
 
 The entity directory is independent: its Dockerfile
-builds SDK/Core from GitHub `main`, and includes them in the
+builds SDK/Core from GitHub `demo-enhanced`, and includes them in the
 resulting image. Local unpushed SDK/Core changes are not in the image. No
 sibling files are required.
 Read `SOURCE_DEPENDENCIES.md` for provenance. `./run.sh --build` refreshes the

@@ -29,7 +29,7 @@ which suppresses diagnostic logs but leaves prompts, answers, and failures.
 directory. The two Cynapsa profiles remain separate on the home volume. Never
 copy one role's profile to another role or start two instances of one role.
 
-Each role's Dockerfile fetches SDK/Core `main` with a BuildKit GitHub-token
+Each role's Dockerfile fetches SDK/Core `demo-enhanced` with a BuildKit GitHub-token
 secret. Existing images do not automatically update when those branches
 change. Rebuild and verify `/opt/cynapsa/source-revisions` before claiming a
 new SDK/Core version is present. The desktop image copies the SDK/Core runtime

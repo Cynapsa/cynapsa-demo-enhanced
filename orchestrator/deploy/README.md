@@ -6,6 +6,11 @@ It runs as ECS service `demo-enhanced-orchestrator` in cluster
 repository is `cynapsa-demo-enhanced-orchestrator`. The checked-in
 [`aws-task-definition-enhanced.json`](aws-task-definition-enhanced.json) records
 the task shape, peer IDs, and secret **references**, not secret values.
+The 2026-10-21 rollout uses task definition
+`cynapsa-demo-enhanced-orchestrator:3` and image digest
+`sha256:4b9f0572850b7e1f15e90240075eff6a9e91cd78ce2c212f2ecfcf2d57159286`.
+The new task reported a ready session and available mesh connectivity. No
+paid end-to-end model call was made in this rollout.
 
 The application is ordinary FastAPI/LangGraph code. The default image
 command uses `cynapsa run --config /tmp/cynapsa-private/cynapsa.json -- app:app`
@@ -17,12 +22,19 @@ state, while `/var/lib/cynapsa-memory` is task-local SQLite chat memory.
 There must be one writer; restarting the task can reset chat history.
 
 The image's SDK and Go Core come from their pinned `demo-enhanced` branches.
-Read `/opt/cynapsa/source-revisions` in the image for exact commits. To
-deploy, build and push a `linux/amd64` image, update only its immutable image
+Read `/opt/cynapsa/source-revisions` in the image for exact commits. For this
+rollout they are Go Core `0c3eaf27c6ed6f47bb716d1b134c237c6a91bcf5`
+and SDK `14cff50c0aa564c5a54498e8d54af467007c28bc`.
+To deploy, build and push a `linux/amd64` image, update only its immutable image
 URI in the task definition, register a new revision, and update the service.
-Preserve its EFS mount, secrets, roles, stop-before-start settings, networking,
-and one-task count. Record the previous task definition for rollback. Check
-the new task and CloudWatch `/ecs/cynapsa-demo-enhanced-orchestrator` before
+Preserve its EFS mount, secrets, roles, networking, and one-task count. This
+single-installation service uses stop-before-start deployment
+(`minimumHealthyPercent=0`, `maximumPercent=100`) with the deployment circuit
+breaker enabled. Availability Zone rebalancing is disabled because ECS does
+not permit it with `maximumPercent=100`. Do not restore overlapping deployment
+while tasks share one installation state. Record the previous task definition
+for rollback. Check the new task and CloudWatch
+`/ecs/cynapsa-demo-enhanced-orchestrator` before
 sending test traffic. The app prints `[cynapsa]` request/response content;
 CLI network events are on, so use demo-only data.
 

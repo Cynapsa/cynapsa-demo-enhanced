@@ -7,12 +7,13 @@ import json
 import logging
 import os
 import re
+import time
 import uuid
 
 import requests
 
 
-LOG = logging.getLogger("demo.cynapsa")
+LOG = logging.getLogger("demo.http")
 DEFAULT_ORIGIN = "http://orchestrator-enhanced.local"
 
 
@@ -31,9 +32,10 @@ def main() -> None:
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", conversation_id):
         parser.error("conversation ID must contain 1–64 letters, numbers, underscores or hyphens")
     url = os.environ.get("DEMO_ORCHESTRATOR_ORIGIN", DEFAULT_ORIGIN).rstrip("/") + "/ask"
+    transport = "cynapsa" if os.environ.get("DEMO_TRANSPORT") == "cynapsa" else "http"
 
     if not args.quiet:
-        print("demo-client ready", flush=True)
+        print("demo-enhanced-client ready", flush=True)
         print(f"Conversation: {conversation_id} (type 'new' for a fresh chat)", flush=True)
     while True:
         try:
@@ -51,12 +53,22 @@ def main() -> None:
             continue
 
         payload = {"prompt": prompt, "conversation_id": conversation_id}
-        LOG.info('[cynapsa] message sent to "orchestrator": %s',
+        request_id = uuid.uuid4().hex[:8]
+        started = time.monotonic()
+        LOG.info('[%s] request started to "orchestrator" (%s) id=%s: %s',
+                 transport, os.environ.get("DEMO_ORCHESTRATOR_AGENT_ID", url), request_id,
                  json.dumps(payload, ensure_ascii=False))
         try:
-            response = requests.post(url, json=payload, timeout=140)
-            LOG.info('[cynapsa] message received from "orchestrator": %s',
-                     response.text)
+            headers = {"x-demo-request-id": request_id}
+            if transport == "http":
+                key = os.environ.get("DEMO_HTTP_ACCESS_KEY", "")
+                if not key:
+                    raise RuntimeError("DEMO_HTTP_ACCESS_KEY is required for HTTP transport")
+                headers["x-demo-access-key"] = key
+            response = requests.post(url, json=payload, headers=headers, timeout=140)
+            LOG.info('[%s] response received from "orchestrator" (%s) id=%s status=%d duration_ms=%d: %s',
+                     transport, os.environ.get("DEMO_ORCHESTRATOR_AGENT_ID", url),
+                     request_id, response.status_code, round((time.monotonic() - started) * 1000), response.text)
             response.raise_for_status()
             data = response.json()
             print(data["answer"], flush=True)
@@ -65,9 +77,27 @@ def main() -> None:
             for source in (data.get("files") or {}).get("sources", []):
                 print(f"  File: {source['path']}:{source.get('line', source.get('start_line', 1))}", flush=True)
         except Exception as exc:
-            LOG.warning('[cynapsa] message to "orchestrator" failed: %r', exc)
+            LOG.warning('[%s] request to "orchestrator" failed id=%s duration_ms=%d: %r',
+                        transport, request_id, round((time.monotonic() - started) * 1000), exc)
             print("Request failed: The demo could not answer", flush=True)
 
 
 if __name__ == "__main__":
+    # To use Cynapsa without the CLI, uncomment this block and comment out
+    # the plain main() below. Set CYNAPSA_TOKEN for first enrollment only.
+    # import cynapsa
+    # origin = "http://orchestrator-enhanced.local"
+    # with cynapsa.login(
+    #     mesh_id="demo_enhanced_cynapsa_demo",
+    #     enrollment_token=os.environ.get("CYNAPSA_TOKEN") or None,
+    #     profile_id="demo-enhanced-client",
+    #     address_map={origin: {
+    #         "recipient": "cynapsa-demo.agent-c58a757b-2c86-4da8-80a4-4b04cc6cb09b@connect.cynapsa.com",
+    #         "mode": "rpc",
+    #     }},
+    #     rpc_timeout_ms=140000,
+    # ):
+    #     os.environ["DEMO_ORCHESTRATOR_ORIGIN"] = origin
+    #     os.environ["DEMO_TRANSPORT"] = "cynapsa"  # Skip demo's HTTP-only access key.
+    #     main()
     main()

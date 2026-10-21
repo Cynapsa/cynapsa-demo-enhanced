@@ -37,7 +37,7 @@ The runner fetches SDK and Go Core `demo-enhanced` from GitHub when the image
 is missing. Set `CYNAPSA_GITHUB_TOKEN` in this directory's ignored `.env`
 for builds; it is not passed to the running container. The enrollment token
 is passed as a runtime environment variable and enrolls the client only when
-the `cynapsa-demo-client-state` Docker volume has no saved profile. Remove the
+the `cynapsa-demo-enhanced-client-state` Docker volume has no saved profile. Remove the
 token from `.env` after enrollment; later runs reuse the encrypted profile.
 
 You can export `CYNAPSA_TOKEN` instead of using `.env`. An exported value takes
@@ -57,13 +57,13 @@ replaces the installation in the selected Docker volume through the same
 SDK/Core branches, rebuild with `./run.sh --build` and restart any running
 container; subsequent runs reuse the rebuilt image.
 
-`DEMO_MESH_ID`, `DEMO_ORCHESTRATOR_AGENT_ID`, `DEMO_MAPS_AGENT_ID`, and
-`DEMO_FILES_AGENT_ID` are required by the launcher. The Client registers
-virtual origins for all three peers, even though the app currently calls only
+`DEMO_MESH_ID` and `DEMO_ORCHESTRATOR_AGENT_ID` are required by the launcher.
+Optional `DEMO_MAPS_AGENT_ID` and `DEMO_FILES_AGENT_ID` register additional
+virtual origins for those peers, even though the app currently calls only
 the Orchestrator. The SDK uses these same entries in reverse if this monkey
 receiver gets an inbound Cynapsa message.
 The optional `DEMO_ORCHESTRATOR_ORIGIN` defaults to
-`http://demo-orchestrator.local`; it is both the URL used by the HTTP app and
+`http://orchestrator-enhanced.local`; it is both the URL used by the HTTP app and
 the origin mapped by the launcher. This keeps the same image reusable for any
 mesh and orchestrator identity.
 

@@ -44,6 +44,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     CYNAPSA_CORE_LIBRARY=/opt/cynapsa/libcynapsacore.so \
     CYNAPSA_STATE_DIRECTORY=/var/lib/cynapsa \
+    DEMO_MEMORY_DIRECTORY=/var/lib/cynapsa \
     DEMO_PRIVATE_DIRECTORY=/tmp/cynapsa-private
 
 RUN groupadd --gid 65532 cynapsa \
@@ -54,11 +55,12 @@ RUN groupadd --gid 65532 cynapsa \
 WORKDIR /app
 COPY requirements.txt ./
 COPY --from=sdk-builder /out/*.whl /tmp/wheels/
-RUN python -m pip install --no-cache-dir -r requirements.txt /tmp/wheels/*.whl \
+RUN set -- /tmp/wheels/*.whl; \
+    python -m pip install --no-cache-dir -r requirements.txt "$1[otel]" \
     && rm -rf /tmp/wheels
 COPY --from=core-builder /out/libcynapsacore.so /opt/cynapsa/libcynapsacore.so
 COPY --from=sources /src/source-revisions /opt/cynapsa/source-revisions
-COPY app.py bootstrap.py connection_alerts.py rpc_logging.py llm.py runtime.py workflow.py entrypoint.sh ./
+COPY app.py llm.py runtime.py workflow.py make_config.py health_listener.py entrypoint.sh ./
 RUN chmod 0555 /app/entrypoint.sh /opt/cynapsa/libcynapsacore.so
 
 USER 65532:65532

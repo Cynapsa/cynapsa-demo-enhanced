@@ -1,30 +1,28 @@
 from __future__ import annotations
 
-import argparse
+import hmac
 import json
 import logging
 import os
-import threading
+import re
+import time
+import uuid
+from contextlib import asynccontextmanager
 from typing import Any, TypedDict
 
-from runtime import prepare_runtime
-
-prepare_runtime()
-
-import cynapsa
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from langgraph.graph import END, START, StateGraph
+from starlette.concurrency import run_in_threadpool
 
 from llm import ModelClient, ModelError
 from places import GooglePlaces, PlacesError
-from runtime import connection_options, google_maps_key, litellm_key
-from connection_alerts import watch_connection
-from rpc_logging import configure_logging, log_handler
+from runtime import google_maps_key, litellm_key
 
 
 LOG = logging.getLogger(__name__)
 MODEL = os.environ.get("LITELLM_MODEL", "chatgpt/gpt-5.6-terra-high")
 BASE_URL = os.environ.get("LITELLM_BASE_URL", "https://litellm.eladrave.com")
-MAX_MODEL_ROUNDS = 10
 TOOLS: list[dict[str, Any]] = [
     {
         "type": "function",
@@ -61,7 +59,15 @@ INSTRUCTIONS = (
 )
 
 
-def _invalid_tool_request(round_index: int, call_index: int | None, reason: str) -> cynapsa.RPCException:
+class MapsApplicationError(Exception):
+    def __init__(self, status_code: int, code: str, detail: str) -> None:
+        super().__init__(detail)
+        self.status_code = status_code
+        self.code = code
+        self.detail = detail
+
+
+def _invalid_tool_request(round_index: int, call_index: int | None, reason: str) -> MapsApplicationError:
     # Keep the remote error stable. Only emit a bounded diagnostic category;
     # prompts, tool arguments, and place IDs can contain user-private data.
     LOG.warning(
@@ -70,7 +76,7 @@ def _invalid_tool_request(round_index: int, call_index: int | None, reason: str)
         call_index + 1 if call_index is not None else "none",
         reason,
     )
-    return cynapsa.RPCException(
+    return MapsApplicationError(
         502, code="maps_tool_error", detail="The maps tool request was invalid"
     )
 
@@ -87,9 +93,8 @@ class MapsState(TypedDict):
 def answer_question(question: str, client: ModelClient, places: GooglePlaces) -> dict[str, Any]:
     def reason(state: MapsState) -> dict[str, Any]:
         round_index = state["round_index"]
-        if round_index >= MAX_MODEL_ROUNDS:
-            LOG.warning("Maps model exhausted %s tool/reasoning rounds", MAX_MODEL_ROUNDS)
-            raise cynapsa.RPCException(
+        if round_index >= 3:
+            raise MapsApplicationError(
                 502, code="maps_no_answer", detail="The maps agent could not finish an answer"
             )
         result = client.complete(
@@ -156,7 +161,7 @@ def answer_question(question: str, client: ModelClient, places: GooglePlaces) ->
                     reason = "unknown_tool"
                     raise ValueError("unknown tool")
             except PlacesError:
-                raise cynapsa.RPCException(
+                raise MapsApplicationError(
                     502, code="places_unavailable", detail="Google Places is unavailable"
                 ) from None
             except (KeyError, TypeError, ValueError):
@@ -174,7 +179,7 @@ def answer_question(question: str, client: ModelClient, places: GooglePlaces) ->
         answer = state["result"].get("content")
         answer = answer.strip() if isinstance(answer, str) else ""
         if not answer:
-            raise cynapsa.RPCException(
+            raise MapsApplicationError(
                 502, code="maps_no_answer", detail="The maps agent could not finish an answer"
             )
         unique = list({
@@ -199,57 +204,82 @@ def answer_question(question: str, client: ModelClient, places: GooglePlaces) ->
             {"role": "user", "content": question},
         ],
         "round_index": 0, "known_ids": set(), "sources": [], "result": {}, "output": {},
-    }, {"recursion_limit": 2 * MAX_MODEL_ROUNDS + 4})
+    }, {"recursion_limit": 12})
     return result["output"]
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Cynapsa Google Maps agent")
-    parser.add_argument("--enroll", action="store_true")
-    parser.add_argument("--force-enroll", action="store_true")
-    args = parser.parse_args()
-    configure_logging()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    for name in ("httpx", "httpcore", "urllib3", "requests"):
+        logging.getLogger(name).setLevel(logging.WARNING)
     model_client = ModelClient(litellm_key(), base_url=BASE_URL, model=MODEL)
     places = GooglePlaces(google_maps_key())
+    app.state.model_client = model_client
+    app.state.places = places
     try:
-        with cynapsa.connect(**connection_options(enroll=args.enroll, force_enroll=args.force_enroll)) as session, watch_connection(session, "demo-maps"):
-            @session.on("*")
-            @log_handler("demo-maps")
-            def receive(request: cynapsa.CynapsaRequest) -> dict:
-                try:
-                    data = request.json()
-                    question = data.get("question") if isinstance(data, dict) else None
-                    if not isinstance(question, str) or not 1 <= len(question.strip()) <= 2_000:
-                        raise ValueError
-                    return answer_question(question.strip(), model_client, places)
-                except (ValueError, UnicodeError):
-                    raise cynapsa.RPCException(
-                        400, code="bad_request", detail="Expected a question of 1–2000 characters"
-                    ) from None
-                except cynapsa.RPCException:
-                    raise
-                except ModelError as exc:
-                    LOG.warning("Model gateway request failed with status %s", exc.status_code)
-                    raise cynapsa.RPCException(
-                        503, code="model_unavailable", detail="The model gateway is unavailable"
-                    ) from None
-                except Exception as exc:
-                    LOG.warning("Maps request failed: %s", type(exc).__name__)
-                    raise cynapsa.RPCException(
-                        502, code="model_unavailable", detail="The maps agent is unavailable"
-                    ) from None
-
-            print(f"demo-maps ready as {session.agent_id} using model {MODEL}", flush=True)
-            threading.Event().wait()
-    except KeyboardInterrupt:
-        pass
-    except cynapsa.NativeError as exc:
-        LOG.error("Maps connection failed: %r", exc)
-        raise
+        LOG.info("demo-enhanced-maps ready using model %s", MODEL)
+        yield
     finally:
         places.close()
         model_client.close()
 
 
-if __name__ == "__main__":
-    main()
+app = FastAPI(lifespan=lifespan)
+
+
+@app.middleware("http")
+async def require_http_demo_key(request: Request, call_next):
+    if os.environ.get("DEMO_TRANSPORT") == "http" and request.url.path != "/health":
+        expected = os.environ.get("DEMO_HTTP_ACCESS_KEY", "")
+        supplied = request.headers.get("x-demo-access-key", "")
+        if not expected or not hmac.compare_digest(supplied, expected):
+            return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+    return await call_next(request)
+
+
+@app.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.post("/maps")
+@app.post("/{path:path}")
+async def receive(request: Request) -> dict[str, Any]:
+    try:
+        data = await request.json()
+        question = data.get("question") if isinstance(data, dict) else None
+        if not isinstance(question, str) or not 1 <= len(question.strip()) <= 2_000:
+            raise ValueError
+    except (ValueError, UnicodeError):
+        raise HTTPException(
+            400, detail={"code": "bad_request", "message": "Expected a question of 1–2000 characters"}
+        ) from None
+    sender = getattr(request.state, "cynapsa_sender", None)
+    supplied_id = request.headers.get("x-demo-request-id", "")
+    request_id = supplied_id if re.fullmatch(r"[0-9a-f]{8}", supplied_id) else uuid.uuid4().hex[:8]
+    transport = "cynapsa" if sender or os.environ.get("DEMO_TRANSPORT") == "cynapsa" else "http"
+    label = "orchestrator" if sender and sender in {
+        os.environ.get("DEMO_ORCHESTRATOR_AGENT_ID"), "http://orchestrator-enhanced.local"
+    } else sender
+    peer = f"{label} ({sender})" if label == "orchestrator" else (label or (request.client.host if request.client else "unknown"))
+    LOG.info('[%s] request received from "%s" id=%s: %s',
+             transport, peer, request_id,
+             json.dumps({"question": question}, ensure_ascii=False))
+    started = time.monotonic()
+    try:
+        result = await run_in_threadpool(
+            answer_question, question.strip(), request.app.state.model_client, request.app.state.places
+        )
+    except MapsApplicationError as exc:
+        raise HTTPException(exc.status_code, detail={"code": exc.code, "message": exc.detail}) from None
+    except ModelError as exc:
+        LOG.warning("Model gateway request failed with status %s", exc.status_code)
+        raise HTTPException(503, detail={"code": "model_unavailable", "message": "The model gateway is unavailable"}) from None
+    except Exception as exc:
+        LOG.warning("Maps request failed: %s", type(exc).__name__)
+        raise HTTPException(502, detail={"code": "maps_unavailable", "message": "The maps agent is unavailable"}) from None
+    LOG.info('[%s] response sent to "%s" id=%s duration_ms=%d: %s',
+             transport, peer, request_id, round((time.monotonic() - started) * 1000),
+             json.dumps(result, ensure_ascii=False))
+    return result

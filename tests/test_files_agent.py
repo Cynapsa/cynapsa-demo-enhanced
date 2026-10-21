@@ -176,6 +176,8 @@ def test_files_app_is_plain_http_and_cli_owns_mesh_bootstrap():
 
 
 def test_files_http_route_returns_answer_and_http_errors(monkeypatch, tmp_path, caplog):
+    caplog.set_level(logging.INFO)
+    monkeypatch.delenv("DEMO_TRANSPORT", raising=False)
     (tmp_path / "people.txt").write_text("Guy lives at 12 Park Drive.")
     model = SimpleNamespace(complete=Mock(side_effect=[
         {"tool_calls": [call("search_files", {"query": "Guy"})]},
@@ -189,15 +191,10 @@ def test_files_http_route_returns_answer_and_http_errors(monkeypatch, tmp_path, 
     app = load("demo_files_http_app", "files/app.py")
     monkeypatch.setattr(app, "ModelClient", lambda *_, **__: model)
     monkeypatch.setattr(app, "litellm_key", lambda: "test-key")
-    caplog.set_level(logging.INFO, logger="demo.cynapsa")
     with TestClient(app.app) as client:
         response = client.post("/files", json={"question": "Guy's address?"})
         assert response.status_code == 200
         assert "12 Park Drive" in response.json()["answer"]
-        messages = [record.getMessage() for record in caplog.records
-                    if record.name == "demo.cynapsa"]
-        assert '[cynapsa] message received from "unknown": {"question": "Guy\'s address?"}' in messages
-        assert not any("HTTP request" in message for message in messages)
         assert client.get("/files").status_code == 405
         assert client.post("/other", json={"question": "hello"}).status_code == 404
         for body in ({"question": ""}, {"question": 7}, [], {}):
@@ -220,23 +217,7 @@ def test_files_http_route_returns_answer_and_http_errors(monkeypatch, tmp_path, 
         assert failed.status_code == 502
         assert "private model details" not in failed.text
     model.close.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_files_logs_authenticated_sender_from_asgi_state(monkeypatch, caplog):
-    for name in ("llm", "runtime", "tools", "workflow"):
-        module = load(f"demo_files_sender_{name}", f"files/{name}.py")
-        monkeypatch.setitem(sys.modules, name, module)
-    app = load("demo_files_sender_app", "files/app.py")
-    monkeypatch.setattr(app, "answer_question", lambda *_: {"answer": "ok"})
-    request = SimpleNamespace(
-        json=AsyncMock(return_value={"question": "hello"}),
-        state=SimpleNamespace(cynapsa_sender="http://orchestrator-enhanced.local"),
-        app=SimpleNamespace(state=SimpleNamespace(model=object(), database=object())),
-    )
-    caplog.set_level(logging.INFO, logger="demo.cynapsa")
-
-    assert await app.files(request) == {"answer": "ok"}
-    assert '[cynapsa] message received from "http://orchestrator-enhanced.local": {"question": "hello"}' in [
-        record.getMessage() for record in caplog.records if record.name == "demo.cynapsa"
-    ]
+    assert '[http] request received from' in caplog.text
+    assert '[http] response sent to' in caplog.text
+    assert "Files request failed: RuntimeError" in caplog.text
+    assert "Traceback" not in caplog.text

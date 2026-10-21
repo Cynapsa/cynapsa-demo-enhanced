@@ -74,7 +74,7 @@ questions return HTTP 400, model unavailability 503, and unexpected handler
 failures a sanitized 502.
 
 With the SDK from `demo-enhanced`, Uvicorn runs the FastAPI lifespan but does not
-bind `127.0.0.1:8000` or any other HTTP listener. Inbound requests reach the
+bind `0.0.0.0:8000` or any other HTTP listener. Inbound requests reach the
 app only through Cynapsa. FastAPI startup prints
 `[cynapsa] files agent ready`; this means the app is running, not that
 a particular remote peer can reach it.
@@ -118,7 +118,7 @@ resulting image. Local unpushed SDK/Core changes are not in the image. No
 sibling files are required.
 Read `SOURCE_DEPENDENCIES.md` for provenance. `./run.sh --build` refreshes the
 image; `./run.sh --force-enroll` uses the genuine SDK CLI in the same state volume.
-Default volume: `cynapsa-demo-files-state`; override with
+Default volume: `cynapsa-demo-enhanced-files-state`; override with
 `CYNAPSA_DEMO_FILES_VOLUME`. Other overrides: `CYNAPSA_DEMO_FILES_IMAGE` and
 `CYNAPSA_DEMO_FILES_ENV_FILE`. Stop with Ctrl-C; the encrypted installation remains
 in its volume. Real `.env`, keys, and documents must not be committed.
@@ -132,6 +132,6 @@ sender is shown by its verified agent ID; ordinary HTTP requests without
 Cynapsa metadata show `unknown`. The message content is not redacted or
 truncated, so use only non-sensitive demo files. It does not
 log a handler return as a delivered response. Headers are not logged. Uvicorn access logs and
-successful LLM HTTP access logs are quiet; warnings and errors remain. Unlike
-the native demo entities, this app has no SDK event consumer or connection
-alerts. Rebuild with `./run.sh --build`.
+successful LLM HTTP access logs are quiet; warnings and errors remain. The app
+has no SDK event consumer; the CLI prints confirmed mesh events. Rebuild with
+`./run.sh --build`.

@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
+import time
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -16,7 +19,7 @@ from tools import FileDatabase
 from workflow import answer_question
 
 
-LOG = logging.getLogger("demo.cynapsa")
+LOG = logging.getLogger("demo.files")
 
 
 @asynccontextmanager
@@ -32,7 +35,7 @@ async def lifespan(app: FastAPI):
     )
     app.state.database = database
     app.state.model = model
-    LOG.info("[cynapsa] files agent ready")
+    LOG.info("demo-enhanced-files ready on /files")
     try:
         yield
     finally:
@@ -55,9 +58,17 @@ async def files(request: Request) -> dict:
         ) from None
 
     question = question.strip()
-    sender = getattr(request.state, "cynapsa_sender", "unknown")
-    LOG.info('[cynapsa] message received from "%s": %s', sender,
+    sender = getattr(request.state, "cynapsa_sender", None)
+    supplied_id = request.headers.get("x-demo-request-id", "")
+    request_id = supplied_id if re.fullmatch(r"[0-9a-f]{8}", supplied_id) else uuid.uuid4().hex[:8]
+    transport = "cynapsa" if sender or os.environ.get("DEMO_TRANSPORT") == "cynapsa" else "http"
+    label = "orchestrator" if sender and sender in {
+        os.environ.get("DEMO_ORCHESTRATOR_AGENT_ID"), "http://orchestrator-enhanced.local"
+    } else sender
+    peer = f"{label} ({sender})" if label == "orchestrator" else (label or (request.client.host if request.client else "unknown"))
+    LOG.info('[%s] request received from "%s" id=%s: %s', transport, peer, request_id,
              json.dumps({"question": question}, ensure_ascii=False))
+    started = time.monotonic()
     try:
         result = await run_in_threadpool(
             answer_question, question, request.app.state.model, request.app.state.database
@@ -65,7 +76,10 @@ async def files(request: Request) -> dict:
     except ModelError as exc:
         LOG.warning("Files model request failed with status %s", exc.status_code)
         raise HTTPException(status_code=503, detail="The model gateway is unavailable") from None
-    except Exception:
-        LOG.exception("Files request failed")
+    except Exception as exc:
+        LOG.error("Files request failed: %s", type(exc).__name__)
         raise HTTPException(status_code=502, detail="The files agent could not answer") from None
+    LOG.info('[%s] response sent to "%s" id=%s duration_ms=%d: %s',
+             transport, peer, request_id, round((time.monotonic() - started) * 1000),
+             json.dumps(result, ensure_ascii=False))
     return result

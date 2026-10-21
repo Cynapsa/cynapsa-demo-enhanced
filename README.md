@@ -9,19 +9,21 @@ Client (Mac desktop image) --Cynapsa /ask--> Orchestrator (AWS ECS)
                                                +--Cynapsa /files--> Files (same Mac desktop image)
 ```
 
-The client and Files app are ordinary HTTP code launched through `cynapsa run`.
-The orchestrator and Maps app use native Cynapsa. The orchestrator, Maps, and
-Files agents use LangGraph; the client is an interactive Requests program.
+All four apps are ordinary HTTP-library code launched through `cynapsa run`.
+Maps, Orchestrator, and Files use FastAPI and LangGraph; Client is an
+interactive Requests program. The CLI supplies enrollment, peer mapping,
+the socketless ASGI bridge, and Cynapsa RPC without an application HTTP listener.
 The wire mesh ID is `demo_enhanced_cynapsa_demo` (the portal display name is
 `demo-enhanced`). Enrollment determines each agent's own identity. Peer IDs
 are in [`desktop/.env.example`](desktop/.env.example) and the per-agent
 `.env.example` files; they are not credentials.
 
-The monkey Client and Files roles configure HTTP-style origins for every
-other demo identity. The SDK uses the receiver's own map in reverse to present
+Each role maps the HTTP-style origins it needs to Cynapsa peer IDs. The SDK
+uses the receiver's own map in reverse to present
 an authenticated sender in `request.state.cynapsa_sender` (first URL wins if
-several target one ID). Native Orchestrator and Maps handlers continue to see
-bare Cynapsa agent IDs. These origins are local aliases, not network servers.
+several target one ID). These origins are local aliases, not network servers.
+The apps log `[cynapsa]` request, response, and confirmed mesh-event lines;
+ordinary model and Places HTTP access logs are reduced to warnings.
 
 ## Run Files and Client on an Apple Silicon Mac
 
@@ -35,7 +37,7 @@ without Tailscale.
 The image contains the two apps, SDK, and Go Core, but **not** enrollment
 tokens or the LiteLLM key. Docker mounts those from ignored local files when
 the container starts. On the prepared demo laptop, those files and the image
-are already in place:
+are already in place. The cloud agents use their own images and profiles.
 
 All enhanced-demo image builds fetch the dedicated `demo-enhanced` branches of
 `Cynapsa/cynapsagocore` and `Cynapsa/cynapsa-python-sdk`, initially copied

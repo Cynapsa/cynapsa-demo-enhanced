@@ -54,7 +54,8 @@ RUN groupadd --gid 65532 cynapsa \
 WORKDIR /app
 COPY requirements.txt ./
 COPY --from=sdk-builder /out/*.whl /tmp/wheels/
-RUN python -m pip install --no-cache-dir -r requirements.txt /tmp/wheels/*.whl \
+RUN set -- /tmp/wheels/*.whl; \
+    python -m pip install --no-cache-dir -r requirements.txt "$1[otel]" \
     && rm -rf /tmp/wheels
 
 COPY --from=core-builder /out/libcynapsacore.so /opt/cynapsa/libcynapsacore.so

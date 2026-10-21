@@ -37,13 +37,16 @@ fi
 unset DEMO_STATE_KEY_B64 DEMO_STATE_PROFILE_B64 DEMO_STATE_PROFILE_FILENAME
 
 set -- cynapsa run --mesh-id "${DEMO_MESH_ID:?DEMO_MESH_ID is required}" \
-  --profile-id demo-enhanced-files --rpc-timeout-ms 110000 \
-  --map "${DEMO_ORCHESTRATOR_ORIGIN:-http://orchestrator-enhanced.local}" \
-    "${DEMO_ORCHESTRATOR_AGENT_ID:?DEMO_ORCHESTRATOR_AGENT_ID is required}" rpc \
-  --map "${DEMO_CLIENT_ORIGIN:-http://client-enhanced.local}" \
-    "${DEMO_CLIENT_AGENT_ID:?DEMO_CLIENT_AGENT_ID is required}" rpc \
-  --map "${DEMO_MAPS_ORIGIN:-http://maps-enhanced.local}" \
-    "${DEMO_MAPS_AGENT_ID:?DEMO_MAPS_AGENT_ID is required}" rpc
+  --profile-id demo-enhanced-files --rpc-timeout-ms 110000
+if [ -n "${DEMO_ORCHESTRATOR_AGENT_ID:-}" ]; then
+  set -- "$@" --map "${DEMO_ORCHESTRATOR_ORIGIN:-http://orchestrator-enhanced.local}" "$DEMO_ORCHESTRATOR_AGENT_ID" rpc
+fi
+if [ -n "${DEMO_CLIENT_AGENT_ID:-}" ]; then
+  set -- "$@" --map "${DEMO_CLIENT_ORIGIN:-http://client-enhanced.local}" "$DEMO_CLIENT_AGENT_ID" rpc
+fi
+if [ -n "${DEMO_MAPS_AGENT_ID:-}" ]; then
+  set -- "$@" --map "${DEMO_MAPS_ORIGIN:-http://maps-enhanced.local}" "$DEMO_MAPS_AGENT_ID" rpc
+fi
 if [ "${DEMO_FORCE_ENROLL:-}" = 1 ] || [ "$profile_present" = false ]; then
   if [ -n "${CYNAPSA_TOKEN:-}" ]; then
     printf '%s' "$CYNAPSA_TOKEN" > "$private_directory/enrollment_token"
@@ -64,4 +67,6 @@ unset CYNAPSA_TOKEN
 if [ -n "${DEMO_APP_DIRECTORY:-}" ]; then
   cd "$DEMO_APP_DIRECTORY"
 fi
-exec "$@" -- uvicorn app:app --host 127.0.0.1 --port 8000 --no-access-log
+export DEMO_TRANSPORT=cynapsa
+export CYNAPSA_CLI_NETWORK_EVENTS=1
+exec "$@" -- uvicorn app:app --host 0.0.0.0 --port 8000 --no-access-log

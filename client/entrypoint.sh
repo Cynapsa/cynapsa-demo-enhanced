@@ -6,8 +6,6 @@ private_directory=${DEMO_PRIVATE_DIRECTORY:-/tmp/cynapsa-private}
 secret_source=${DEMO_SECRET_SOURCE_DIRECTORY:-/run/secrets}
 origin=${DEMO_ORCHESTRATOR_ORIGIN:-http://orchestrator-enhanced.local}
 : "${DEMO_ORCHESTRATOR_AGENT_ID:?DEMO_ORCHESTRATOR_AGENT_ID is required}"
-: "${DEMO_MAPS_AGENT_ID:?DEMO_MAPS_AGENT_ID is required}"
-: "${DEMO_FILES_AGENT_ID:?DEMO_FILES_AGENT_ID is required}"
 
 mkdir -p "$state_directory" "$private_directory"
 chmod 700 "$state_directory" "$private_directory"
@@ -22,9 +20,13 @@ done
 
 set -- cynapsa run --mesh-id "${DEMO_MESH_ID:?DEMO_MESH_ID is required}" \
   --profile-id demo-enhanced-client --map "$origin" "$DEMO_ORCHESTRATOR_AGENT_ID" rpc \
-  --map "${DEMO_MAPS_ORIGIN:-http://maps-enhanced.local}" "$DEMO_MAPS_AGENT_ID" rpc \
-  --map "${DEMO_FILES_ORIGIN:-http://files-enhanced.local}" "$DEMO_FILES_AGENT_ID" rpc \
   --rpc-timeout-ms 140000
+if [ -n "${DEMO_MAPS_AGENT_ID:-}" ]; then
+  set -- "$@" --map "${DEMO_MAPS_ORIGIN:-http://maps-enhanced.local}" "$DEMO_MAPS_AGENT_ID" rpc
+fi
+if [ -n "${DEMO_FILES_AGENT_ID:-}" ]; then
+  set -- "$@" --map "${DEMO_FILES_ORIGIN:-http://files-enhanced.local}" "$DEMO_FILES_AGENT_ID" rpc
+fi
 if [ "${DEMO_FORCE_ENROLL:-}" = 1 ] || [ "$profile_present" = false ]; then
   if [ -n "${CYNAPSA_TOKEN:-}" ]; then
     printf '%s' "$CYNAPSA_TOKEN" > "$private_directory/enrollment_token"
@@ -44,7 +46,9 @@ fi
 
 unset CYNAPSA_TOKEN
 app_directory=${DEMO_APP_DIRECTORY:-/app}
+export DEMO_TRANSPORT=cynapsa
 if [ "${DEMO_CLIENT_QUIET:-}" = 1 ]; then
   exec "$@" -- python "$app_directory/app.py" --quiet
 fi
+export CYNAPSA_CLI_NETWORK_EVENTS=1
 exec "$@" -- python "$app_directory/app.py"

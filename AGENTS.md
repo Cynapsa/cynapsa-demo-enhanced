@@ -36,6 +36,11 @@ new SDK/Core version is present. The desktop image copies the SDK/Core runtime
 from its freshly built Files image, so its Client and Files processes have the
 same runtime revisions.
 
+All four applications use ordinary HTTP libraries under the Cynapsa CLI.
+Maps, Orchestrator, and Files expose FastAPI apps; Client uses Requests.
+Keep the enhanced mesh ID, profile names, peer IDs, and HTTP-origin maps
+separate from the regular demo when synchronizing application logic or logs.
+
 The slim image omits Chrome, Codex Desktop, Tailscale, guest access, and
 Playwright MCP. It retains Xfce, Xvfb, noVNC, x11vnc, and the authenticated
 local HTTPS gateway. The old full image and Tailscale volume remain available
@@ -43,5 +48,5 @@ for rollback and must not be deleted casually.
 
 When diagnosing failures, verify the four mesh memberships, cloud worker
 readiness, separate enrollment profiles, current peer IDs, and Cynapsa logs.
-Native `send` is not proof of remote delivery; use an RPC result to verify
+An accepted send is not proof of remote delivery; use an RPC result to verify
 end-to-end operation. Do not expose token contents during debugging.

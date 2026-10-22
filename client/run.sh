@@ -31,7 +31,7 @@ for option in "$@"; do
     --build) build_requested=true ;;
     --force-enroll) force_enroll=true ;;
     --quiet|--silent) quiet=true ;;
-    *) echo "usage: ./run.sh [--build] [--force-enroll] [--silent]" >&2; exit 64 ;;
+    *) echo "usage: ./run.sh [--build] [--force-enroll] [--quiet]" >&2; exit 64 ;;
   esac
 done
 if [[ -n ${CYNAPSA_DEMO_CLIENT_VOLUME:-} ]]; then

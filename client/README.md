@@ -80,19 +80,19 @@ changes; an unpushed local API removal is not in a GitHub image by assumption.
 For chat-only output:
 
 ```sh
-./run.sh --silent
+./run.sh --quiet
 ```
 
 On the first run after updating this code, rebuild with
-`./run.sh --build --silent`. The Python app also accepts `python app.py --silent`.
-`--quiet` remains an alias. Silent mode hides Python logs and startup banners while
+`./run.sh --build --quiet`. The Python app also accepts `python app.py --quiet`.
+`--silent` remains an alias. Quiet mode hides Python logs and startup banners while
 keeping the input prompt, answers, citations, user-triggered `new` conversation
 IDs, and request failures. The HTTP app has no SDK event observer.
 Successful build output is hidden; build/startup failures remain visible.
 It can be combined with `--force-enroll` without changing credentials or volumes.
 This is a demo-client option, not a new SDK/Core flag; other agents are unchanged.
 
-Without `--silent`, the app logs Cynapsa message sends and receives with the
+Without `--quiet`, the app logs Cynapsa message sends and receives with the
 peer name `orchestrator`, including full content, or a failure. There is no
 redaction or truncation; do not put sensitive prompts in this demo if logs will
 be shared. Headers are not logged. The answer also prints normally. HTTP access

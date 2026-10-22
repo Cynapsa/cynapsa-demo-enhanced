@@ -22,7 +22,7 @@ manually with `./run.sh` from each terminal's preselected role directory;
 neither starts automatically.
 `./run.sh --force-enroll` in either role terminal passes a real Cynapsa
 force-enrollment request using that role's mounted enrollment token.
-The Client terminal also supports `./run.sh --silent` (`--quiet` is an alias),
+The Client terminal also supports `./run.sh --quiet` (`--silent` is an alias),
 which suppresses diagnostic logs but leaves prompts, answers, and failures.
 `desktop/client.sh` is an alternative host-terminal launcher. The desktop's
 `demo-location.txt` and `Files-Database` link to the persistent Files data
@@ -41,8 +41,9 @@ Maps, Orchestrator, and Files expose FastAPI apps; Client uses Requests.
 Keep the enhanced mesh ID, profile names, peer IDs, and HTTP-origin maps
 separate from the regular demo when synchronizing application logic or logs.
 
-The slim image omits Chrome, Codex Desktop, Tailscale, guest access, and
-Playwright MCP. It retains Xfce, Xvfb, noVNC, x11vnc, and the authenticated
+The slim image includes Chrome for normal graphical browsing but omits Codex
+Desktop, Tailscale, guest access, and Playwright MCP. It retains Xfce, Xvfb,
+noVNC, x11vnc, and the authenticated
 local HTTPS gateway. The old full image and Tailscale volume remain available
 for rollback and must not be deleted casually.
 

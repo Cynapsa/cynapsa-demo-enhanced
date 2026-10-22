@@ -6,8 +6,8 @@ set -eu
 for option in "$@"; do
   case "$option" in
     --force-enroll) export DEMO_FORCE_ENROLL=1 ;;
-    --silent|--quiet) export DEMO_CLIENT_QUIET=1 ;;
-    *) echo 'usage: ./run.sh [--force-enroll] [--silent]' >&2; exit 64 ;;
+    --quiet|--silent) export DEMO_CLIENT_QUIET=1 ;;
+    *) echo 'usage: ./run.sh [--force-enroll] [--quiet]' >&2; exit 64 ;;
   esac
 done
 

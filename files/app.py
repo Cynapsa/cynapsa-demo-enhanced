@@ -58,15 +58,20 @@ async def files(request: Request) -> dict:
         ) from None
 
     question = question.strip()
+    sender_id = getattr(request.state, "cynapsa_sender_id", None)
+    sender_origin = getattr(request.state, "cynapsa_sender_http_origin", None)
     sender = getattr(request.state, "cynapsa_sender", None)
     supplied_id = request.headers.get("x-demo-request-id", "")
     request_id = supplied_id if re.fullmatch(r"[0-9a-f]{8}", supplied_id) else uuid.uuid4().hex[:8]
-    transport = "cynapsa" if sender or os.environ.get("DEMO_TRANSPORT") == "cynapsa" else "http"
-    label = "orchestrator" if sender and sender in {
-        os.environ.get("DEMO_ORCHESTRATOR_AGENT_ID"), "http://orchestrator-enhanced.local"
-    } else sender
-    peer = f"{label} ({sender})" if label == "orchestrator" else (label or (request.client.host if request.client else "unknown"))
-    LOG.info('[%s] request received from "%s" id=%s: %s', transport, peer, request_id,
+    transport = "cynapsa" if sender_id or sender or os.environ.get("DEMO_TRANSPORT") == "cynapsa" else "http"
+    if sender_id:
+        label = "orchestrator" if sender_id == os.environ.get("DEMO_ORCHESTRATOR_AGENT_ID") else "agent"
+        peer = f'"{label}" cynapsa_id={json.dumps(sender_id)}'
+        if sender_origin:
+            peer += f' http_origin={json.dumps(sender_origin)}'
+    else:
+        peer = json.dumps(sender or (request.client.host if request.client else "unknown"))
+    LOG.info('[%s] request received from %s id=%s: %s', transport, peer, request_id,
              json.dumps({"question": question}, ensure_ascii=False))
     started = time.monotonic()
     try:
@@ -79,7 +84,7 @@ async def files(request: Request) -> dict:
     except Exception as exc:
         LOG.error("Files request failed: %s", type(exc).__name__)
         raise HTTPException(status_code=502, detail="The files agent could not answer") from None
-    LOG.info('[%s] response sent to "%s" id=%s duration_ms=%d: %s',
+    LOG.info('[%s] response sent to %s id=%s duration_ms=%d: %s',
              transport, peer, request_id, round((time.monotonic() - started) * 1000),
              json.dumps(result, ensure_ascii=False))
     return result

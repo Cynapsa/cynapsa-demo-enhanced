@@ -21,7 +21,11 @@ fi
   exit 78
 }
 
-CYNAPSA_DEMO_FILES_IMAGE=cynapsa-demo-enhanced-files:local "$root/files/build.sh"
+if [[ ${CYNAPSA_DEMO_REUSE_FILES_IMAGE:-0} == 1 ]]; then
+  docker image inspect cynapsa-demo-enhanced-files:local >/dev/null
+else
+  CYNAPSA_DEMO_FILES_IMAGE=cynapsa-demo-enhanced-files:local "$root/files/build.sh"
+fi
 docker buildx build --platform linux/arm64 --load \
   --build-context "upstream=$source_dir" \
   --tag cynapsa-demo-enhanced-desktop:slim-local \

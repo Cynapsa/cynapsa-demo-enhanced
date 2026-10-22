@@ -77,15 +77,15 @@ Changing the ID starts a different chat; it does not erase earlier history.
 For prompts and answers without diagnostic logs or startup banners:
 
 ```sh
-./run.sh --silent
+./run.sh --quiet
 ```
 
 Rebuild once after updating to this implementation with
-`./run.sh --build --silent`. Build failures and request failures remain visible;
-successful build output is hidden. Normal runs without `--silent` retain logs.
-Use `./run.sh --force-enroll --silent` if a replacement enrollment is required.
-For direct Python execution, the equivalent option is `python app.py --silent`.
-The previous `--quiet` spelling remains an alias.
+`./run.sh --build --quiet`. Build failures and request failures remain visible;
+successful build output is hidden. Normal runs without `--quiet` retain logs.
+Use `./run.sh --force-enroll --quiet` if a replacement enrollment is required.
+For direct Python execution, the equivalent option is `python app.py --quiet`.
+The enhanced-demo `--silent` spelling remains an alias.
 The HTTP app has no SDK event observer. Quiet mode preserves chat citations
 and `new`.
 

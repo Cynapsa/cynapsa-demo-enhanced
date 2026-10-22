@@ -34,6 +34,15 @@ FILES_ORIGIN = os.environ.get("DEMO_FILES_ORIGIN", "").rstrip("/")
 REQUEST_ID: ContextVar[str | None] = ContextVar("demo_request_id", default=None)
 
 
+def _peer_label(name: str, cynapsa_id: str | None, http_origin: str | None) -> str:
+    parts = [json.dumps(name)]
+    if cynapsa_id:
+        parts.append(f"cynapsa_id={json.dumps(cynapsa_id)}")
+    if http_origin:
+        parts.append(f"http_origin={json.dumps(http_origin)}")
+    return " ".join(parts)
+
+
 class AskBody(BaseModel):
     prompt: str = Field(min_length=1, max_length=2_000)
     conversation_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
@@ -68,12 +77,13 @@ async def lifespan(app: FastAPI):
             async with httpx.AsyncClient(timeout=100.0) as downstream:
                 async def ask_remote(origin: str, path: str, question: str) -> dict[str, Any]:
                     name = "maps" if path == "/maps" else "files"
-                    identity = os.environ.get(f"DEMO_{name.upper()}_AGENT_ID", origin)
                     transport = "cynapsa" if os.environ.get("DEMO_TRANSPORT") == "cynapsa" else "http"
+                    identity = os.environ.get(f"DEMO_{name.upper()}_AGENT_ID") if transport == "cynapsa" else None
+                    peer = _peer_label(name, identity, origin)
                     request_id = REQUEST_ID.get() or uuid.uuid4().hex[:8]
                     started = time.monotonic()
-                    LOG.info('[%s] request started to "%s" (%s) id=%s: %s',
-                             transport, name, identity, request_id,
+                    LOG.info('[%s] request started to %s id=%s: %s',
+                             transport, peer, request_id,
                              json.dumps({"question": question}, ensure_ascii=False))
                     headers = {"x-demo-request-id": request_id}
                     if transport == "http":
@@ -82,8 +92,8 @@ async def lifespan(app: FastAPI):
                             raise RuntimeError("DEMO_HTTP_ACCESS_KEY is required for HTTP transport")
                         headers["x-demo-access-key"] = key
                     response = await downstream.post(origin + path, json={"question": question}, headers=headers)
-                    LOG.info('[%s] response received from "%s" (%s) id=%s status=%d duration_ms=%d: %s',
-                             transport, name, identity, request_id, response.status_code,
+                    LOG.info('[%s] response received from %s id=%s status=%d duration_ms=%d: %s',
+                             transport, peer, request_id, response.status_code,
                              round((time.monotonic() - started) * 1000), response.text)
                     response.raise_for_status()
                     try:
@@ -149,14 +159,16 @@ async def ask(request: Request) -> dict[str, Any]:
         ) from None
 
     sender = getattr(request.state, "cynapsa_sender", None)
+    sender_id = getattr(request.state, "cynapsa_sender_id", None)
+    sender_origin = getattr(request.state, "cynapsa_sender_http_origin", None)
     supplied_id = request.headers.get("x-demo-request-id", "")
     request_id = supplied_id if re.fullmatch(r"[0-9a-f]{8}", supplied_id) else uuid.uuid4().hex[:8]
     transport = "cynapsa" if sender or os.environ.get("DEMO_TRANSPORT") == "cynapsa" else "http"
-    label = "client" if sender and sender in {
-        os.environ.get("DEMO_CLIENT_AGENT_ID"), os.environ.get("DEMO_CLIENT_ORIGIN")
-    } else sender
-    peer = f"{label} ({sender})" if label == "client" else (label or (request.client.host if request.client else "unknown"))
-    LOG.info('[%s] request received from "%s" id=%s: %s',
+    label = "client" if sender_id and sender_id == os.environ.get("DEMO_CLIENT_AGENT_ID") else (
+        sender or (request.client.host if request.client else "unknown")
+    )
+    peer = _peer_label(label, sender_id, sender_origin)
+    LOG.info('[%s] request received from %s id=%s: %s',
              transport, peer, request_id,
              json.dumps({"prompt": body.prompt, "conversation_id": conversation_id}, ensure_ascii=False))
     started = time.monotonic()
@@ -182,7 +194,7 @@ async def ask(request: Request) -> dict[str, Any]:
     finally:
         REQUEST_ID.reset(token)
     result = {**answer, "conversation_id": conversation_id}
-    LOG.info('[%s] response sent to "%s" id=%s duration_ms=%d: %s',
+    LOG.info('[%s] response sent to %s id=%s duration_ms=%d: %s',
              transport, peer, request_id, round((time.monotonic() - started) * 1000),
              json.dumps(result, ensure_ascii=False))
     return result

@@ -32,6 +32,47 @@ RUN apt-get update \
     && chmod 0440 /etc/sudoers.d/cynapsa-demo \
     && rm -rf /var/lib/apt/lists/*
 
+# Keep a normal graphical browser in the desktop without restoring the
+# upstream image's Codex, Tailscale, or browser-automation services.
+# Google's signed arm64 APT repository supplies updates on each rebuild.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends gnupg; \
+    curl --fail --location --retry 5 \
+      https://dl.google.com/linux/linux_signing_key.pub \
+      --output /tmp/google-linux-signing-key.pub; \
+    fingerprint="$(gpg --show-keys --with-colons /tmp/google-linux-signing-key.pub \
+      | awk -F: '$1 == "fpr" { print $10; exit }')"; \
+    test "$fingerprint" = EB4C1BFD4F042F6DDDCCEC917721F63BD38B4796; \
+    gpg --batch --yes --dearmor \
+      --output /usr/share/keyrings/google-chrome.gpg \
+      /tmp/google-linux-signing-key.pub; \
+    printf '%s\n' \
+      'deb [arch=arm64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome-stable/deb/ stable main' \
+      > /etc/apt/sources.list.d/google-chrome.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends google-chrome-stable; \
+    test "$(dpkg-query -W -f='${Architecture}' google-chrome-stable)" = arm64; \
+    test -x /usr/bin/google-chrome-stable; \
+    apt-get purge -y gnupg; \
+    apt-get autoremove -y; \
+    rm -f /tmp/google-linux-signing-key.pub; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY desktop/launch-browser.sh /usr/local/bin/cynapsa-demo-browser
+ENV BROWSER=/usr/local/bin/cynapsa-demo-browser
+RUN chmod 0755 /usr/local/bin/cynapsa-demo-browser \
+    && sed -i \
+      's|Exec=/usr/bin/google-chrome-stable|Exec=/usr/local/bin/cynapsa-demo-browser|g' \
+      /usr/share/applications/google-chrome.desktop \
+    && sed -i \
+      's|X-XFCE-Commands=%B;|X-XFCE-Commands=/usr/local/bin/cynapsa-demo-browser;|; s|X-XFCE-CommandsWithParameter=%B|X-XFCE-CommandsWithParameter=/usr/local/bin/cynapsa-demo-browser|' \
+      /usr/share/xfce4/helpers/google-chrome.desktop \
+    && grep -Fq 'Exec=/usr/local/bin/cynapsa-demo-browser %U' \
+      /usr/share/applications/google-chrome.desktop \
+    && grep -Fq 'X-XFCE-Commands=/usr/local/bin/cynapsa-demo-browser;' \
+      /usr/share/xfce4/helpers/google-chrome.desktop
+
 COPY --from=caddy-runtime /usr/bin/caddy /tmp/caddy
 RUN install -o root -g root -m 0755 /tmp/caddy /usr/bin/caddy \
     && rm -f /tmp/caddy

@@ -22,15 +22,25 @@ Each role maps the HTTP-style origins it needs to Cynapsa peer IDs. The SDK
 uses the receiver's own map in reverse to present
 an authenticated sender in `request.state.cynapsa_sender` (first URL wins if
 several target one ID). These origins are local aliases, not network servers.
+The bridge also provides the verified peer ID as
+`request.state.cynapsa_sender_id` and, when mapped, the HTTP alias as
+`request.state.cynapsa_sender_http_origin`. The demo logs the friendly name,
+verified Cynapsa ID, and mapped HTTP origin together. Plain HTTP requests
+have no verified Cynapsa ID and are logged without one.
 The apps log `[cynapsa]` request, response, and confirmed mesh-event lines;
 ordinary model and Places HTTP access logs are reduced to warnings.
 
 ## Run Files and Client on an Apple Silicon Mac
 
-The local image uses only the Xfce/noVNC and authenticated-gateway scripts from
+The local image uses the Xfce/noVNC and authenticated-gateway scripts from
 the pinned [`eladrave/codex-desktop-container`](https://github.com/eladrave/codex-desktop-container)
-source. Chrome, Codex Desktop, Tailscale, guest access, and Playwright MCP are
-not installed or started. Its authenticated noVNC GUI is exposed only on this Mac at
+source. Google Chrome is installed as a normal graphical browser (open
+**Applications → Web Browser** in Xfce); Codex Desktop, Tailscale, guest access, and
+Playwright MCP are not installed or started. Browser updates are picked up when
+the image is rebuilt. Docker blocks Chrome's nested sandbox here, so the GUI
+launcher uses `--no-sandbox` inside the existing restricted container; do not
+use this demo browser for sensitive browsing. Its authenticated noVNC GUI is
+exposed only on this Mac at
 `https://localhost:18443/` (which opens the login page). Cynapsa works
 without Tailscale.
 
@@ -59,9 +69,9 @@ answer questions. `./client.sh` is an alternative host-terminal launcher;
 run only one Client instance at a time.
 To replace a revoked installation using the mounted enrollment token, run
 `./run.sh --force-enroll` in that agent's terminal instead.
-In the Client terminal, use `./run.sh --silent` to keep only the question
+In the Client terminal, use `./run.sh --quiet` to keep only the question
 prompt, answers, and request failures; combine it with `--force-enroll` when
-needed. The existing `--quiet` option is an alias.
+needed. `--silent` remains an alias for older enhanced-demo commands.
 
 For a **fresh clone or another Apple Silicon Mac**, first install Docker
 Desktop. Copy `desktop/.env.example` to `desktop/.env` and check the mesh and
@@ -77,6 +87,11 @@ cp .env.example .env
 # Set CYNAPSA_GITHUB_TOKEN in ../files/.env or your shell, then:
 ./run.sh --build
 ```
+
+If only the desktop layer changed and `cynapsa-demo-enhanced-files:local`
+already exists, `CYNAPSA_DEMO_REUSE_FILES_IMAGE=1 ./build.sh` rebuilds the
+desktop without fetching SDK/Core again. This deliberately reuses the Files
+image's existing SDK/Core version.
 
 The grant file must contain `Files-enhanced:` and `Client-enhanced:` labels,
 each followed on the next line by `export Cynapsa_TOKEN="..."`. The preparation

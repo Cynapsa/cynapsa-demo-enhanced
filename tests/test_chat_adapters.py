@@ -41,6 +41,13 @@ def maps(monkeypatch):
     return load("demo_maps_http", root / "app.py", monkeypatch)
 
 
+def files(monkeypatch):
+    root = ROOT / "files"
+    for name in ("llm", "runtime", "tools", "workflow"):
+        load(name, root / f"{name}.py", monkeypatch)
+    return load("demo_files_http", root / "app.py", monkeypatch)
+
+
 def test_maps_http_endpoint_and_error_status(monkeypatch):
     async def run():
         app = maps(monkeypatch)
@@ -207,9 +214,10 @@ def test_orchestrator_logs_cynapsa_error_without_traceback(monkeypatch, caplog, 
 def test_orchestrator_cynapsa_message_logs(monkeypatch, caplog):
     async def run():
         app = orchestrator(monkeypatch)
-        sender = "client-a@example.test"
+        sender = "http://client-enhanced.local"
+        sender_id = "client-a@example.test"
         monkeypatch.setenv("DEMO_TRANSPORT", "cynapsa")
-        monkeypatch.setenv("DEMO_CLIENT_AGENT_ID", sender)
+        monkeypatch.setenv("DEMO_CLIENT_AGENT_ID", sender_id)
 
         class Agent:
             async def answer(self, *_):
@@ -219,7 +227,9 @@ def test_orchestrator_cynapsa_message_logs(monkeypatch, caplog):
 
         async def bridge(scope, receive, send):
             if scope["type"] == "http":
-                scope = {**scope, "state": {"cynapsa_sender": sender}}
+                scope = {**scope, "state": {"cynapsa_sender": sender,
+                                             "cynapsa_sender_id": sender_id,
+                                             "cynapsa_sender_http_origin": sender}}
             await app.app(scope, receive, send)
 
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=bridge), base_url="http://demo.local") as client:
@@ -228,10 +238,46 @@ def test_orchestrator_cynapsa_message_logs(monkeypatch, caplog):
 
     with caplog.at_level(logging.INFO):
         asyncio.run(run())
-    assert '[cynapsa] request received from "client (client-a@example.test)"' in caplog.text
-    assert '[cynapsa] response sent to "client (client-a@example.test)"' in caplog.text
+    peer = '"client" cynapsa_id="client-a@example.test" http_origin="http://client-enhanced.local"'
+    assert f'[cynapsa] request received from {peer}' in caplog.text
+    assert f'[cynapsa] response sent to {peer}' in caplog.text
     assert "id=a1b2c3d4" in caplog.text
     assert 'HTTP request received' not in caplog.text
+
+
+@pytest.mark.parametrize("load_app,path", [(maps, "/maps"), (files, "/files")])
+def test_server_logs_verified_id_and_mapped_http_origin(monkeypatch, caplog, load_app, path):
+    async def run():
+        module = load_app(monkeypatch)
+        monkeypatch.setenv("DEMO_TRANSPORT", "cynapsa")
+        monkeypatch.setenv("DEMO_ORCHESTRATOR_AGENT_ID", "orchestrator@example.test")
+        if path == "/maps":
+            module.app.state.model_client = object()
+            module.app.state.places = object()
+            monkeypatch.setattr(module, "answer_question", lambda *_: {"answer": "ok", "sources": []})
+        else:
+            module.app.state.model = object()
+            module.app.state.database = object()
+            monkeypatch.setattr(module, "answer_question", lambda *_: {"answer": "ok", "sources": []})
+
+        async def bridge(scope, receive, send):
+            if scope["type"] == "http":
+                scope = {**scope, "state": {
+                    "cynapsa_sender": "http://orchestrator-enhanced.local",
+                    "cynapsa_sender_id": "orchestrator@example.test",
+                    "cynapsa_sender_http_origin": "http://orchestrator-enhanced.local",
+                }}
+            await module.app(scope, receive, send)
+
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=bridge), base_url="http://demo.local") as client:
+            response = await client.post(path, json={"question": "hello"})
+            assert response.status_code == 200
+
+    with caplog.at_level(logging.INFO):
+        asyncio.run(run())
+    peer = '"orchestrator" cynapsa_id="orchestrator@example.test" http_origin="http://orchestrator-enhanced.local"'
+    assert f'[cynapsa] request received from {peer}' in caplog.text
+    assert f'[cynapsa] response sent to {peer}' in caplog.text
 
 
 def test_orchestrator_lifespan_persists_http_conversation(monkeypatch, tmp_path):

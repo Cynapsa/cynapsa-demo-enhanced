@@ -44,10 +44,14 @@ exposed only on this Mac at
 `https://localhost:18443/` (which opens the login page). Cynapsa works
 without Tailscale.
 
-The image contains the two apps, SDK, and Go Core, but **not** enrollment
-tokens or the LiteLLM key. Docker mounts those from ignored local files when
-the container starts. On the prepared demo laptop, those files and the image
-are already in place. The cloud agents use their own images and profiles.
+The buildable `slim-local` image contains the two apps, SDK, and Go Core, but
+**not** enrollment tokens or the LiteLLM key. The local Compose setup mounts
+those from ignored files. A separate **private, ready-to-run** GHCR image
+contains the same desktop plus the Files and Client enrollment grants, the
+LiteLLM key, and this demo's non-secret mesh/peer IDs. Anyone granted access
+to that image can extract and use those credentials; never make the package
+public or use it for unrelated or production identities. The cloud agents
+have separate images and credentials.
 
 All enhanced-demo image builds fetch the dedicated `demo-enhanced` branches of
 `Cynapsa/cynapsagocore` and `Cynapsa/cynapsa-python-sdk`, initially copied
@@ -100,8 +104,43 @@ mode-`0600` files under `../.private/`; it does not add them to the image.
 The GitHub token needs read access to the private SDK and Go Core repositories
 for the build. `desktop/build.sh` fetches SDK/Core `demo-enhanced` and records their
 commits in `/opt/cynapsa/source-revisions`. The pinned upstream desktop
-commit is `2a1c0063f7246658e44c046651a970e08ca210f9`. GitHub stores this
-image's build files, not a prebuilt Docker image.
+commit is `2a1c0063f7246658e44c046651a970e08ca210f9`. The public Git
+repository stores build files, not the credential files. The private GHCR
+package stores the ready-to-run image.
+
+### Run the private ready-to-run image on another Apple Silicon Mac
+
+Install Docker Desktop and authenticate to `ghcr.io` using a GitHub account
+granted read access to the private `Cynapsa/cynapsa-demo-enhanced-desktop`
+package. From a checkout of this public repository, run:
+
+```sh
+cd desktop
+./run-published.sh
+```
+
+The script pulls
+`ghcr.io/cynapsa/cynapsa-demo-enhanced-desktop:ready-20261022` and starts the
+GUI at `https://localhost:18443/`. There is no SDK/Core build, GitHub source
+token, local `.env`, or local enrollment/key file to prepare. The Files and
+Client terminals remain idle until you type `./run.sh` in each. To print the
+one-click GUI URL, run:
+
+```sh
+docker exec -it cynapsa-demo-enhanced-published-desktop-1 remote-browser-credentials
+```
+
+The image intentionally shares the demo's Files and Client enrollment grants.
+Use only one active installation per role; concurrent copies using the same
+cached installation may conflict. Each Mac gets its own persistent Docker
+volumes. The image tag is pinned to the bundled credentials and source
+version; new releases should use a new tag rather than replacing it silently.
+
+For maintainers only, [`desktop/ready/build-and-push.sh`](desktop/ready/build-and-push.sh)
+builds this private image from the current `slim-local` image and the ignored
+`.private/` files. It requires GitHub package-write access and verifies the
+resulting package remains private. Do not move `.private/` into Git or change
+the GHCR package visibility to public.
 
 To open the graphical desktop, run the following in your own trusted terminal
 and open the `noVNC one-click URL` it prints:

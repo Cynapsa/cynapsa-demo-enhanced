@@ -1,0 +1,36 @@
+name: cynapsa-demo-enhanced-published
+
+services:
+  desktop:
+    image: ghcr.io/cynapsa/cynapsa-demo-enhanced-desktop:ready-20261022
+    platform: linux/arm64
+    hostname: cynapsa-demo-enhanced-desktop
+    environment:
+      HOME: /home/codex
+      USER: codex
+      LOGNAME: codex
+      SHELL: /bin/bash
+      CODEX_DESKTOP_CRD_ENABLED: "0"
+      REMOTE_BROWSER_TAILSCALE_SERVE: "0"
+      REMOTE_BROWSER_PUBLIC_MCP_FUNNEL: "0"
+      REMOTE_BROWSER_ORIGIN: https://localhost:18443
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, KILL, SETGID, SETUID, AUDIT_WRITE]
+    ports:
+      - "127.0.0.1:18443:9443"
+    volumes:
+      - enhanced-home:/home/codex
+      - enhanced-machine:/var/lib/codex-desktop-persistent
+    tmpfs:
+      - /run:rw,nosuid,nodev,mode=0755
+      - /tmp:rw,nosuid,nodev,mode=1777
+    shm_size: 256mb
+    mem_limit: 6g
+    cpus: 2.0
+    pids_limit: 2048
+    restart: unless-stopped
+    stop_grace_period: 45s
+
+volumes:
+  enhanced-home:
+  enhanced-machine:
